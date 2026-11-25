@@ -9,7 +9,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=22";
+} from "./cards.js?v=23";
 
 let toastTimer = null;
 
@@ -325,7 +325,6 @@ export function renderHand(state, container, cardsById, onFocus, size, pick = nu
 }
 
 export function renderHud(state, els, cardsById, size) {
-  els.deck.textContent = String(state.deck.length);
   els.hand.textContent = `${state.hand.length}/${state.handLimit}`;
   if (!els.time) return;
 

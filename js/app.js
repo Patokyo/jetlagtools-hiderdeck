@@ -15,7 +15,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=22";
+} from "./deck.js?v=23";
 import {
   POWER_PLAY,
   SIZES,
@@ -23,10 +23,10 @@ import {
   cardOf,
   curseCost,
   curseText,
-} from "./cards.js?v=22";
-import { trackDrag } from "./gestures.js?v=22";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=22";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=22";
+} from "./cards.js?v=23";
+import { trackDrag } from "./gestures.js?v=23";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=23";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=23";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -46,7 +46,6 @@ const sizeInputs = [...document.querySelectorAll('input[name="size"]')];
 const unitsSwitch = document.getElementById("units-switch");
 const undoButton = document.getElementById("undo");
 const hudEls = {
-  deck: document.getElementById("deck-count"),
   hand: document.getElementById("hand-count"),
   time: document.getElementById("time-total"),
 };
