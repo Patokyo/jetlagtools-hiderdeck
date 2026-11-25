@@ -1,0 +1,90 @@
+/* Playing-card face. White card, rounded corners, corner indices. */
+
+.card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: var(--card-h);
+  aspect-ratio: 5 / 7;
+  width: auto;
+
+  background: #fff;
+  color: #14161c;
+  border: 1px solid #e3e3ec;
+  border-radius: 18px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 22px 48px -14px rgba(0, 0, 0, 0.7);
+
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  cursor: grab;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Even cards are red, odd cards black — reads as a card deck without inventing suits. */
+.card[data-parity="even"] {
+  color: #b3122b;
+}
+
+.card.is-dragging {
+  cursor: grabbing;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.35),
+    0 34px 64px -16px rgba(0, 0, 0, 0.85);
+}
+
+/* Release-intent feedback while dragging. */
+.card[data-intent="keep"] {
+  box-shadow:
+    0 0 0 3px rgba(63, 191, 133, 0.55),
+    0 26px 52px -16px rgba(0, 0, 0, 0.8);
+}
+
+.card[data-intent="discard"] {
+  box-shadow:
+    0 0 0 3px rgba(255, 107, 107, 0.5),
+    0 26px 52px -16px rgba(0, 0, 0, 0.8);
+}
+
+/* Inner hairline frame, like the border printed on a real card. */
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 2.6%;
+  border: 1px solid currentColor;
+  border-radius: 11px;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.card__corner {
+  position: absolute;
+  font-size: clamp(1.05rem, 4.2dvh, 2rem);
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.card__corner--tl {
+  top: 5.5%;
+  left: 7%;
+}
+
+.card__corner--br {
+  bottom: 5.5%;
+  right: 7%;
+  transform: rotate(180deg);
+}
+
+.card__number {
+  font-size: clamp(4.5rem, 26dvh, 13rem);
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}

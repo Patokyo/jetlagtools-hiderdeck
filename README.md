@@ -66,21 +66,21 @@ Everything in one script. Fastest possible start, and honestly fine for a first 
 
 ```text
 index.html
+serve.sh            # localhost dev server (python3, falls back to npx serve)
 .nojekyll
 css/
-  reset.css
-  layout.css
-  card.css
+  reset.css         # reset only
+  layout.css        # stage, HUD, hint, toast
+  card.css          # playing-card face + drag states
 js/
-  app.js          # wiring: listeners, boot
-  deck.js         # deck + shuffle + draw/discard/keep rules (pure, no DOM)
-  gestures.js     # pointer tracking, thresholds, velocity
-  render.js       # card element creation + transform updates
-  storage.js      # localStorage load/save + schema versioning
+  app.js            # wiring: boot, gesture → rule → render
+  deck.js           # shuffle/draw/keep/discard/sanitize (pure, no DOM)
+  gestures.js       # pointer tracking, thresholds, velocity
+  render.js         # card element, HUD, toast
+  storage.js        # localStorage load/save + versioning
 data/
-  cards.json      # the 100 cards
+  cards.json        # the 100 cards (ids "1"–"100")
 assets/
-  card-back.svg
   favicon.svg
 ```
 
@@ -117,21 +117,22 @@ One versioned object, saved on every mutation (debounced ~200ms):
 }
 ```
 
-If `v` doesn't match the current version, or the JSON is corrupt, fall back to a fresh deck rather than half-loading a broken run.
+If `v` doesn't match the current version, the JSON is corrupt, an id is unknown, or the same card appears twice, the save is rejected and a fresh run is created rather than half-loading a broken one.
+
+Hand limit defaults to **6** (`DEFAULT_HAND_LIMIT` in `js/deck.js`). While a card is in play, `active` holds its id — a drawn card only joins `hand` once you keep it, so discarding never costs you a hand slot.
 
 ---
 
 ## Running locally
 
-ES modules don't load from `file://`, so use any static server:
+ES modules don't load from `file://`, so it has to be served over http:
 
 ```bash
-python3 -m http.server 8000
-# or
-npx serve .
+./serve.sh          # http://localhost:8080
+./serve.sh 3000     # or pick a port
 ```
 
-Then open <http://localhost:8000>.
+The script uses `python3 -m http.server` and falls back to `npx serve`. Then open <http://localhost:8080>. Drag with a mouse works the same as a finger.
 
 ---
 
@@ -154,12 +155,13 @@ One-time setup on GitHub: **Settings → Pages → Source → GitHub Actions**. 
 
 ## Roadmap
 
-- [ ] `data/cards.json` — the 100 cards
-- [ ] Deck: seeded shuffle, draw, keep, discard, hand limit
-- [ ] Gestures: pull-down-to-draw, drag, swipe up/down to resolve
-- [ ] Card stack rendering + snap-back animation
-- [ ] `localStorage` persistence + resume prompt
-- [ ] Reset / new run button
+- [x] `data/cards.json` — the 100 cards, labelled 1–100
+- [x] Deck: seeded shuffle, draw, keep, discard, hand limit
+- [x] Gestures: pull-down-to-draw, drag, swipe up/down to resolve
+- [x] Card rendering + snap-back animation
+- [x] `localStorage` persistence (resumes mid-run on refresh)
+- [x] New run button
+- [ ] Review the kept hand as cards (currently counts only)
 - [ ] Offline: serve from cache (a service worker is the last thing added, not the first)
 
 ---

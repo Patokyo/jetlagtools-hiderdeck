@@ -1,2 +1,248 @@
-// App entry point. Replace with real wiring once the structure is chosen.
-console.info("Hider Deck: scaffold loaded");
+// App wiring: load the deck, restore state, handle the swipe gestures.
+
+import {
+  DEFAULT_HAND_LIMIT,
+  createRun,
+  discardActive,
+  drawCard,
+  keepActive,
+  sanitize,
+} from "./deck.js";
+import { trackDrag } from "./gestures.js";
+import { createCardEl, renderHud, showToast } from "./render.js";
+import { clear, load, save } from "./storage.js";
+
+const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
+const FLICK_VELOCITY = 1.1; // px/ms
+const TAP_SLOP = 12; // below this the drag counts as a tap, not a swipe
+const EXIT_MS = 320;
+
+const stage = document.getElementById("stage");
+const slot = document.getElementById("slot");
+const hint = document.getElementById("hint");
+const resetButton = document.getElementById("reset");
+const hudEls = {
+  deck: document.getElementById("deck-count"),
+  hand: document.getElementById("hand-count"),
+  discard: document.getElementById("discard-count"),
+};
+
+const app = {
+  cards: new Map(),
+  run: null,
+  cardEl: null,
+};
+
+boot();
+
+async function boot() {
+  resetButton.addEventListener("click", newRun);
+
+  try {
+    const response = await fetch("./data/cards.json", { cache: "no-cache" });
+    if (!response.ok) throw new Error(`cards.json returned ${response.status}`);
+    const data = await response.json();
+
+    for (const card of data.cards) app.cards.set(card.id, card);
+  } catch (err) {
+    console.error("[deck] could not load cards", err);
+    setHint("Could not load cards.json");
+    showToast("Could not load the deck");
+    return;
+  }
+
+  const stored = sanitize(load(), new Set(app.cards.keys()));
+  app.run = stored ?? createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
+  renderHud(app.run, hudEls);
+  save(app.run);
+
+  bindTableDraw();
+
+  if (app.run.active) {
+    showCard(app.run.active, { animate: false });
+  } else {
+    updateIdleHint();
+  }
+}
+
+/* --- drawing --------------------------------------------------------- */
+
+function bindTableDraw() {
+  trackDrag(stage, {
+    // Swiping down anywhere means anywhere that isn't a card or the HUD.
+    allow: (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return false;
+      return !target.closest(".card, .hud, .toast");
+    },
+    onMove: ({ y }) => {
+      const pull = Math.max(0, Math.min(y, 140));
+      hint.style.transform = `translateY(${Math.min(pull * 0.25, 18)}px)`;
+      hint.style.opacity = String(1 - Math.min(pull / 280, 0.55));
+    },
+    onEnd: ({ y, vx, vy, moved }) => {
+      hint.style.transform = "";
+      hint.style.opacity = "";
+      if (!moved) return;
+      const tugged = y > DRAW_DISTANCE || (vy > FLICK_VELOCITY && Math.abs(vx) < Math.abs(vy));
+      if (tugged) tryDraw();
+    },
+    onCancel: () => {
+      hint.style.transform = "";
+      hint.style.opacity = "";
+    },
+  });
+}
+
+function tryDraw() {
+  if (app.cardEl) return;
+
+  const result = drawCard(app.run);
+  if (!result.cardId) {
+    if (result.reason === "full") {
+      showToast(`Hand is full (${app.run.handLimit}/${app.run.handLimit})`);
+      setHint(`Hand full — ${app.run.handLimit}/${app.run.handLimit}`);
+    } else {
+      showToast("The deck is empty");
+      setHint("The deck is empty");
+    }
+    return;
+  }
+
+  app.run = result.state;
+  persist();
+  showCard(result.cardId);
+}
+
+function showCard(cardId, { animate = true } = {}) {
+  const card = app.cards.get(cardId);
+  if (!card) return;
+
+  const el = createCardEl(card);
+  slot.append(el);
+  app.cardEl = el;
+
+  if (animate) {
+    el.style.transform = "translateY(-140%)";
+    requestAnimationFrame(() => {
+      el.style.transition = "transform 360ms cubic-bezier(.22,.9,.24,1)";
+      el.style.transform = "translateY(0)";
+      el.addEventListener(
+        "transitionend",
+        () => {
+          el.style.transition = "";
+        },
+        { once: true },
+      );
+    });
+  }
+
+  bindCardDrag(el);
+  renderHud(app.run, hudEls);
+  setHint("Swipe up to discard · swipe down to keep");
+}
+
+/* --- resolving ------------------------------------------------------- */
+
+function bindCardDrag(el) {
+  const height = el.offsetHeight || 420;
+  const threshold = Math.max(72, height * 0.16);
+
+  trackDrag(el, {
+    onStart: () => {
+      el.style.transition = "none";
+    },
+    onMove: ({ x, y }) => {
+      el.style.transform = `translate(${x}px, ${y}px) rotate(${x * 0.02}deg)`;
+      setIntent(el, y <= -threshold ? "discard" : y >= threshold ? "keep" : "");
+    },
+    onEnd: ({ x, y, vx, vy, moved }) => {
+      if (!moved || Math.abs(y) < TAP_SLOP) {
+        snapBack(el);
+        return;
+      }
+
+      const wantsDiscard = y <= -threshold || (vy <= -FLICK_VELOCITY && Math.abs(vx) < Math.abs(vy));
+      const wantsKeep =
+        !wantsDiscard && (y >= threshold || (vy >= FLICK_VELOCITY && Math.abs(vx) < Math.abs(vy)));
+
+      if (wantsDiscard) resolveCard(el, "discard", x);
+      else if (wantsKeep) resolveCard(el, "keep", x);
+      else snapBack(el);
+    },
+    onCancel: () => snapBack(el),
+  });
+}
+
+function resolveCard(el, action, x) {
+  if (app.cardEl !== el) return;
+
+  const result = action === "keep" ? keepActive(app.run) : discardActive(app.run);
+  if (!result.cardId) {
+    snapBack(el);
+    return;
+  }
+
+  app.run = result.state;
+  persist();
+  renderHud(app.run, hudEls);
+  setIntent(el, "");
+  app.cardEl = null;
+
+  const offset = Math.max(-60, Math.min(60, x * 0.35));
+  el.style.transition = `transform ${EXIT_MS}ms ease-in, opacity ${EXIT_MS}ms ease-in`;
+  el.style.transform = `translate(${offset}px, ${action === "keep" ? "130%" : "-130%"}) rotate(${
+    action === "keep" ? 7 : -7
+  }deg)`;
+  el.style.opacity = "0";
+
+  // transitionend can be skipped (reduced motion / backgrounded tab); the timer is the fallback.
+  el.addEventListener("transitionend", () => el.remove(), { once: true });
+  setTimeout(() => el.remove(), EXIT_MS + 120);
+
+  updateIdleHint();
+}
+
+function snapBack(el) {
+  setIntent(el, "");
+  el.style.transition = "transform 320ms cubic-bezier(.22,1.1,.36,1)";
+  el.style.transform = "translate(0, 0) rotate(0deg)";
+  el.style.opacity = "";
+}
+
+function setIntent(el, intent) {
+  if (intent) el.dataset.intent = intent;
+  else delete el.dataset.intent;
+}
+
+/* --- state ----------------------------------------------------------- */
+
+function newRun() {
+  if (!confirm("Start a new run? The current hand and discard pile are lost.")) return;
+
+  clear();
+  app.cardEl?.remove();
+  app.cardEl = null;
+
+  app.run = createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
+  persist();
+  renderHud(app.run, hudEls);
+  updateIdleHint();
+  showToast("New run");
+}
+
+function persist() {
+  save(app.run);
+}
+
+function setHint(text) {
+  hint.textContent = text;
+  hint.hidden = !text;
+}
+
+function updateIdleHint() {
+  if (app.cardEl) return;
+  if (app.run.deck.length === 0) setHint("The deck is empty");
+  else if (app.run.hand.length >= app.run.handLimit) setHint("Hand full — start a new run");
+  else setHint("Swipe down to draw");
+}

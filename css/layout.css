@@ -1,0 +1,163 @@
+:root {
+  --bg: #101319;
+  --panel: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.1);
+  --ink: #eceef5;
+  --muted: #8b93a7;
+  --accent: #6c7bff;
+  --keep: #3fbf85;
+  --discard: #ff6b6b;
+
+  /* Card is sized off the viewport so it fills most of a phone screen. */
+  --card-h: min(calc(100vh - 132px), calc(88vw * 7 / 5), 640px);
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --card-h: min(calc(100dvh - 132px), calc(88vw * 7 / 5), 640px);
+  }
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(120% 80% at 50% -10%, #1d2230 0%, transparent 60%),
+    var(--bg);
+}
+
+.stage {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  min-height: 100%;
+  touch-action: none;
+  overflow: hidden;
+}
+
+/* --- HUD ------------------------------------------------------------- */
+
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: max(10px, env(safe-area-inset-top)) 16px 6px;
+}
+
+.hud__stats {
+  display: flex;
+  gap: 8px;
+}
+
+.hud__stat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+}
+
+.hud__stat dt {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hud__stat dd {
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__reset {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.hud__reset:hover,
+.hud__reset:focus-visible {
+  color: var(--ink);
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* --- Table ----------------------------------------------------------- */
+
+.table {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  padding: 4px 0 max(14px, env(safe-area-inset-bottom));
+  min-height: 0;
+}
+
+.slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+.hint {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+/* --- Toast ----------------------------------------------------------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(26px, env(safe-area-inset-bottom));
+  transform: translate(-50%, 12px);
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(24, 28, 38, 0.94);
+  font-size: 0.8rem;
+  color: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+  z-index: 10;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.noscript {
+  position: fixed;
+  inset: auto 0 40% 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

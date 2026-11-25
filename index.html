@@ -3,21 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#12141a">
+  <meta name="theme-color" content="#101319">
+  <meta name="description" content="Swipe-driven 100 card hider deck.">
   <title>Hider Deck</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./css/reset.css">
+  <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/card.css">
 </head>
 <body>
   <main class="stage" id="stage">
-    <p class="placeholder">
-      Hider Deck — scaffold ready.
-      <br>
-      Swipe-down card draw lands here.
-    </p>
+    <header class="hud">
+      <dl class="hud__stats">
+        <div class="hud__stat">
+          <dt>Deck</dt>
+          <dd id="deck-count">–</dd>
+        </div>
+        <div class="hud__stat">
+          <dt>Hand</dt>
+          <dd id="hand-count">–</dd>
+        </div>
+        <div class="hud__stat">
+          <dt>Discard</dt>
+          <dd id="discard-count">–</dd>
+        </div>
+      </dl>
+      <button class="hud__reset" id="reset" type="button">New run</button>
+    </header>
+
+    <section class="table">
+      <div class="slot" id="slot"></div>
+      <p class="hint" id="hint" aria-live="polite">Swipe down to draw</p>
+    </section>
   </main>
 
-  <!-- Structure option B: replace these with real modules as they are built. -->
+  <noscript>
+    <p class="noscript">This deck needs JavaScript enabled.</p>
+  </noscript>
+
   <script type="module" src="./js/app.js"></script>
 </body>
 </html>
