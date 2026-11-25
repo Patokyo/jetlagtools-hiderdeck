@@ -14,7 +14,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=15";
+} from "./deck.js?v=16";
 import {
   POWER_PLAY,
   SIZES,
@@ -22,11 +22,10 @@ import {
   cardOf,
   curseCost,
   curseText,
-  scoreText,
-} from "./cards.js?v=15";
-import { trackDrag } from "./gestures.js?v=15";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=15";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=15";
+} from "./cards.js?v=16";
+import { trackDrag } from "./gestures.js?v=16";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=16";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=16";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -46,7 +45,7 @@ const sizeInputs = [...document.querySelectorAll('input[name="size"]')];
 const unitsSwitch = document.getElementById("units-switch");
 const dealBar = document.getElementById("deal");
 const dealChips = [...document.querySelectorAll("[data-deal]")];
-const scoreButton = document.getElementById("score-copy");
+const undoButton = document.getElementById("undo");
 const hudEls = {
   deck: document.getElementById("deck-count"),
   hand: document.getElementById("hand-count"),
@@ -76,7 +75,7 @@ async function boot() {
   resetButton.addEventListener("click", newRun);
   bindSettings();
   bindDeal();
-  scoreButton.addEventListener("click", copyScore);
+  undoButton.addEventListener("click", undoLast);
   registerServiceWorker();
 
   try {
@@ -103,6 +102,7 @@ async function boot() {
   // table unresponsive, which is what a stale index.html used to cause.
   bindTableDraw();
   renderTable();
+  renderUndo();
   save(app.run);
 
   if (app.run.active) showCard(app.run.active, { animate: false });
@@ -246,14 +246,13 @@ function discardInPlay() {
 
   renderTable();
   updateIdleHint();
-  if (played?.kind === "curse") copyCurse(played, { undo: undoLast });
+  if (played?.kind === "curse") copyCurse(played);
   showToast(
     playingHandCard
       ? "Card played"
       : result.count === 1
         ? "Discarded 1 card"
         : `Discarded ${result.count} cards`,
-    { undo: undoLast },
   );
 }
 
@@ -436,9 +435,9 @@ function resolveCard(el, action, x) {
   app.cardEl = null;
 
   flyAway(el, action, x);
-  if (playing?.kind === "curse") copyCurse(playing, { undo: undoLast });
-  else if (action === "keep") showToast("Kept", { undo: undoLast });
-  else showToast(result.next ? "Skipped" : "Discarded", { undo: undoLast });
+  if (playing?.kind === "curse") copyCurse(playing);
+  else if (action === "keep") showToast("Kept");
+  else showToast(result.next ? "Skipped" : "Discarded");
   updateIdleHint();
 
   // Skipping a dealt card brings the next one forward; otherwise whatever was
@@ -627,7 +626,7 @@ function finishReplace(replaceId) {
   }
   updateIdleHint();
   promoteTopPending();
-  showToast("Kept · replaced 1 card", { undo: undoLast });
+  showToast("Kept · replaced 1 card");
 }
 
 function finishCurse(el, { discards = [] } = {}, x = 0) {
@@ -656,14 +655,13 @@ function finishCurse(el, { discards = [] } = {}, x = 0) {
   setIntent(el, "");
   app.cardEl = null;
   flyAway(el, "discard", x);
-  if (card?.kind === "curse") copyCurse(card, { undo: undoLast });
+  if (card?.kind === "curse") copyCurse(card);
   updateIdleHint();
 
   showToast(
     discards.length
       ? `Curse played · discarded ${discards.length}`
       : `${card?.title ?? "Curse"} played`,
-    { undo: undoLast },
   );
 }
 
@@ -701,40 +699,24 @@ function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
   if (parts.length === 0) parts.push(`${card?.name ?? "Power up"} played`);
 
   const message = parts.join(" · ");
-  showToast(`${message[0].toUpperCase()}${message.slice(1)}`, { undo: undoLast });
+  showToast(`${message[0].toUpperCase()}${message.slice(1)}`);
 }
 
 /**
  * A played curse goes to the clipboard, so the hiders can text it to the
  * seekers without retyping it.
  */
-function copyCurse(card, options = {}) {
+function copyCurse(card) {
   if (!navigator.clipboard?.writeText) {
     showToast("Could not copy the curse");
     return;
   }
 
   navigator.clipboard.writeText(curseText(card, app.size, app.units)).then(
-    () => showToast("Curse copied to clipboard", options),
+    () => showToast("Curse copied to clipboard"),
     (err) => {
       console.warn("[deck] could not copy the curse", err);
       showToast("Could not copy the curse");
-    },
-  );
-}
-
-/** The hand's score as text, for telling the seekers what you are worth. */
-function copyScore() {
-  if (!navigator.clipboard?.writeText) {
-    showToast("Could not copy the score");
-    return;
-  }
-
-  navigator.clipboard.writeText(scoreText(app.run.hand, app.cards, app.size)).then(
-    () => showToast("Score copied to clipboard"),
-    (err) => {
-      console.warn("[deck] could not copy the score", err);
-      showToast("Could not copy the score");
     },
   );
 }
@@ -765,6 +747,7 @@ function newRun() {
 
   app.run = createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
   app.undo = null;
+  renderUndo();
   persist();
   renderTable();
   updateIdleHint();
@@ -837,11 +820,17 @@ function refreshFaces() {
 
 /**
  * Every change that moves cards keeps the run as it was before it, so a
- * mis-swiped card can be put back from the toast. Runs are immutable, so the
+ * mis-swiped card can be put back from the HUD. Runs are immutable, so the
  * snapshot is just the previous object.
  */
 function pushUndo() {
   app.undo = app.run;
+  renderUndo();
+}
+
+/** The button is only live while there is a previous run to restore. */
+function renderUndo() {
+  undoButton.disabled = !app.undo;
 }
 
 function undoLast() {
@@ -849,6 +838,7 @@ function undoLast() {
 
   app.run = app.undo;
   app.undo = null;
+  renderUndo();
   app.pick = null;
   app.cardEl?.remove();
   app.cardEl = null;

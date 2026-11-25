@@ -143,23 +143,6 @@ export function handScore(hand, cardsById, size) {
   return { base, bonus, copies, best, total: base + bonus };
 }
 
-/** The hand's score as text, ready to paste to the seekers. */
-export function scoreText(hand, cardsById, size) {
-  const { copies, best, total } = handScore(hand, cardsById, size);
-  if (total === 0) return "No time bonus in hand yet.";
-
-  const lines = [`Time bonus in hand: ${total} min`];
-  const parts = [];
-  for (const id of hand) {
-    const card = cardOf(cardsById, id);
-    if (card && card.kind === "time") parts.push(`${card.color} ${minutesFor(card, size)}m`);
-  }
-  if (parts.length) lines.push(parts.join(" · "));
-  if (copies) lines.push(`Duplicate ×${copies} copies the best bonus: +${copies * best}m`);
-
-  return lines.join("\n");
-}
-
 /**
  * Card text for the selected game size and unit system. Distances are written
  * once per unit in cards.json; only the chosen one survives, so a metric player

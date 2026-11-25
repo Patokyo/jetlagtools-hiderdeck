@@ -22,7 +22,7 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 | Release high (swipe up past the threshold) | Card is **discarded** to the discard pile |
 | Release low (swipe down past the threshold) | Card is **kept** — it slides down into the hand strip |
 | Release in the dead zone | Card snaps back, decision not made |
-| Tap **Undo** in the toast | Restores the run as it was before the last discard, keep, play or deal |
+| Tap **Undo** in the HUD | Restores the run as it was before the last discard, keep, play or deal. Top right, dimmed until there is something to put back |
 
 Rules the app has to enforce:
 
@@ -31,11 +31,11 @@ Rules the app has to enforce:
 - **Reading the hand** — pressing a kept card brings it forward full size without taking it out of the hand, so the count stays honest. While it is forward no card can be drawn; playing it moves it to the discard pile and putting it back leaves the hand unchanged.
 - **Power ups play themselves** — Draw 1 Expand 1 draws its card straight into the hand and raises the hand limit by one. Discard 1 Draw 2 and Discard 2 Draw 3 can't be played without that many other cards in hand; once played they ask you to tap the cards to give up, then discard them and draw straight into the hand. Duplicate asks for a card in hand and puts a copy of it back into the hand. Randomize, Veto and Move simply leave the hand, because their effect happens at the table.
 - **Questions are dealt** — a question costs more than one draw: one card for a photo, three for Matching or Measuring, two for Radar or Thermometer. The Deal chips deal that many at once, so the cards come up together and tapping the fan compares them. Keeping one ends the question by discarding the rest; throwing one away skips it and brings the next forward; swiping up on the table abandons the whole deal. Drawing is blocked while a deal is open.
-- **Every move is undoable** — the toast for a discard, a keep, a played card or a deal carries an Undo button that restores the run as it was. A mis-swipe on a moving train costs nothing. It stays up for about five seconds.
+- **Every move is undoable** — the Undo button in the HUD restores the run as it was before the last discard, keep, played card or deal. It's a fixed button rather than a toast: it never covers the card or the hand, and it can be hit without reading anything. It dims once used, because only one step is kept.
 - **Swipe up clears the table** — an upward swipe on the table, rather than on a card, discards every undecided card at once. It's the bail-out for a draw you don't want to sort through; kept cards are never touched by it.
 - **Hand limit** — a full hand still lets you draw; the card is only in play until you keep it. Keeping into a full hand asks you to pick a card already in the hand to throw away first, so the hand never grows past its limit by keeping. Drawing never costs you the card in play: it only leaves play when you keep or discard it.
 - **Curses pay their casting cost in cards** — a curse whose cost is "Discard a card", "Discard 2 cards", "Discard a time bonus card", "Discard a power up card" or "Discard your hand" can't be played until those cards are picked, exactly like the power ups that discard to draw. The picks go to the discard pile with the curse, and if the hand can't pay, the curse stays in hand. "Discard your hand" needs no picking: it takes the rest of the hand with it.
-- **Discard tracking** — discarded cards are removed from play and recorded, not recycled. The count is not shown in the HUD, which keeps only deck, hand and the hand's score. A Duplicate in hand counts as a second copy of the best time bonus, so the number is what the hider is actually playing for, and the clipboard button in the HUD copies the breakdown to paste to the seekers.
+- **Discard tracking** — discarded cards are removed from play and recorded, not recycled. The count is not shown in the HUD, which keeps only deck, hand and the hand's score. A Duplicate in hand counts as a second copy of the best time bonus, so the number is what the hider is actually playing for.
 - **Persistence** — deck order, hand, discard pile and hand limit are cached in `localStorage` so a refresh (or a closed tab) resumes exactly where the player left off.
 
 ---
@@ -180,6 +180,24 @@ The script uses `python3 -m http.server` and falls back to `npx serve`. Then ope
 
 ---
 
+## Installing it on a phone
+
+The site is a plain web app, so "installing" just means adding it to the home screen. It then launches without browser chrome and, thanks to `sw.js`, opens with no signal.
+
+**iPhone / iPad (Safari only — Chrome and Firefox on iOS can't add to the home screen):**
+
+1. Open the site in Safari over https.
+2. Tap the **Share** button in the toolbar.
+3. Scroll down and tap **Add to Home Screen**, then **Add**.
+
+What makes that work is in `index.html`: `apple-mobile-web-app-capable` gives it the standalone launch, `apple-mobile-web-app-title` is the label under the icon, and `apple-mobile-web-app-status-bar-style` plus `viewport-fit=cover` and the `env(safe-area-inset-*)` padding let the table run under the status bar without hiding the HUD. iOS ignores `display` in the manifest and uses those meta tags instead, and it ignores the manifest's SVG icon — it looks for an `apple-touch-icon` PNG and otherwise uses a screenshot of the page.
+
+**Android (Chrome):** the manifest is read directly, so Chrome offers an install prompt (menu → **Install app**). It uses the SVG icon and `display: standalone`.
+
+On both, the first load with signal caches everything; after that the app opens offline. The cache is tied to the `?v=` stamp, so a release only replaces it once the new page has been fetched once.
+
+---
+
 ## Branches
 
 | Branch | Purpose |
@@ -207,8 +225,8 @@ One-time setup on GitHub: **Settings → Pages → Source → GitHub Actions**. 
 - [x] New run button
 - [ ] Review the kept hand as cards (currently counts only)
 - [x] Deal a question (draw N, keep 1)
-- [x] Undo the last move from the toast
-- [x] Score the hand (Duplicate doubling) and copy it
+- [x] Undo the last move from the HUD
+- [x] Score the hand (Duplicate doubling)
 - [x] Offline: service worker + manifest, so it installs and runs without signal
 
 ---

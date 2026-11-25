@@ -9,7 +9,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=15";
+} from "./cards.js?v=16";
 
 let toastTimer = null;
 
@@ -312,14 +312,9 @@ export function renderHud(state, els, cardsById, size) {
 }
 
 const TOAST_MS = 1900;
-// An undo needs time to be noticed and tapped.
-const UNDO_MS = 5200;
 
-/**
- * The bottom toast. `undo` turns it into an action: the button runs the
- * callback and takes the message away with it.
- */
-export function showToast(message, { undo = null } = {}) {
+/** The bottom toast: a short confirmation that fades on its own. */
+export function showToast(message) {
   let el = document.querySelector(".toast");
 
   if (!el) {
@@ -330,25 +325,12 @@ export function showToast(message, { undo = null } = {}) {
     document.body.append(el);
   }
 
-  el.replaceChildren(document.createTextNode(message));
-  el.classList.toggle("is-action", Boolean(undo));
-
-  if (undo) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "toast__undo";
-    button.textContent = "Undo";
-    button.addEventListener("click", () => {
-      el.classList.remove("is-visible");
-      undo();
-    });
-    el.append(button);
-  }
+  el.textContent = message;
 
   // Force a reflow so re-showing the same toast replays the transition.
   void el.offsetWidth;
   el.classList.add("is-visible");
 
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("is-visible"), undo ? UNDO_MS : TOAST_MS);
+  toastTimer = setTimeout(() => el.classList.remove("is-visible"), TOAST_MS);
 }

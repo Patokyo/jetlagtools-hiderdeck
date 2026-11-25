@@ -127,11 +127,24 @@ body {
   transition: color 150ms ease, border-color 150ms ease;
 }
 
-.hud__icon:hover,
-.hud__icon:focus-visible {
+.hud__icon:hover:not(:disabled),
+.hud__icon:focus-visible:not(:disabled) {
   color: var(--ink);
   border-color: var(--accent);
   outline: none;
+}
+
+/* Undo lives in the HUD rather than a toast: a fixed button can be hit without
+   looking, and it never covers the card or the hand. Dimmed until there is
+   something to put back. */
+#undo:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+#undo:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--accent);
 }
 
 /* --- Table ----------------------------------------------------------- */
@@ -268,33 +281,6 @@ body {
 .toast.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
-}
-
-/* A toast carrying an action has to be tappable, and gives the button room. */
-.toast.is-action {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-right: 8px;
-  pointer-events: auto;
-}
-
-.toast__undo {
-  padding: 5px 12px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(108, 123, 255, 0.26);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.toast__undo:hover,
-.toast__undo:focus-visible {
-  background: rgba(108, 123, 255, 0.42);
-  outline: none;
 }
 
 .noscript {
