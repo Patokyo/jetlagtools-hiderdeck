@@ -769,7 +769,7 @@
       "number": 9,
       "title": "Curse of the Bridge Troll",
       "effect": "The seekers must ask their next question from under a bridge.",
-      "cost": "Seekers must be at least [S1, M5, L30]mi [S0.3, M1.5, L9.1]km from you"
+      "cost": "Seekers must be at least [S1, M5, L30]mi [S1.6, M8, L48]km from you"
     },
     {
       "id": "c10",

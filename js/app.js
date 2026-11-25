@@ -13,11 +13,11 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=12";
-import { POWER_PLAY, SIZES, UNITS, cardOf, curseCost } from "./cards.js?v=12";
-import { trackDrag } from "./gestures.js?v=12";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=12";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=12";
+} from "./deck.js?v=13";
+import { POWER_PLAY, SIZES, UNITS, cardOf, curseCost } from "./cards.js?v=13";
+import { trackDrag } from "./gestures.js?v=13";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=13";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=13";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -34,7 +34,7 @@ const resetButton = document.getElementById("reset");
 const settingsOpen = document.getElementById("settings-open");
 const settingsDialog = document.getElementById("settings");
 const sizeInputs = [...document.querySelectorAll('input[name="size"]')];
-const unitInputs = [...document.querySelectorAll('input[name="units"]')];
+const unitsSwitch = document.getElementById("units-switch");
 const hudEls = {
   deck: document.getElementById("deck-count"),
   hand: document.getElementById("hand-count"),
@@ -78,6 +78,7 @@ async function boot() {
   const settings = loadSettings();
   if (SIZES.includes(settings.size)) app.size = settings.size;
   if (UNITS.includes(settings.units)) app.units = settings.units;
+  unitsSwitch.checked = app.units === "imperial";
 
   const stored = sanitize(load(), new Set(app.cards.keys()));
   app.run = stored ?? createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
@@ -648,7 +649,7 @@ function newRun() {
 function bindSettings() {
   settingsOpen.addEventListener("click", () => {
     for (const input of sizeInputs) input.checked = input.value === app.size;
-    for (const input of unitInputs) input.checked = input.value === app.units;
+    unitsSwitch.checked = app.units === "imperial";
     if (typeof settingsDialog.showModal === "function") settingsDialog.showModal();
     else settingsDialog.setAttribute("open", "");
   });
@@ -659,11 +660,9 @@ function bindSettings() {
     });
   }
 
-  for (const input of unitInputs) {
-    input.addEventListener("change", () => {
-      if (input.checked) setUnits(input.value);
-    });
-  }
+  unitsSwitch.addEventListener("change", () => {
+    setUnits(unitsSwitch.checked ? "imperial" : "metric");
+  });
 
   settingsDialog.addEventListener("click", (event) => {
     if (event.target === settingsDialog) settingsDialog.close();
@@ -681,9 +680,13 @@ function setSize(size) {
 }
 
 function setUnits(units) {
-  if (!UNITS.includes(units) || units === app.units) return;
+  if (!UNITS.includes(units) || units === app.units) {
+    unitsSwitch.checked = app.units === "imperial";
+    return;
+  }
 
   app.units = units;
+  unitsSwitch.checked = units === "imperial";
   saveSettings({ size: app.size, units: app.units });
   refreshFaces();
 

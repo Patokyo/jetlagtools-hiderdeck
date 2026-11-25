@@ -298,10 +298,6 @@ body {
   border: 0;
 }
 
-.sizes + .sizes {
-  margin-top: 8px;
-}
-
 .size {
   display: flex;
   align-items: center;
@@ -330,6 +326,81 @@ body {
   margin-left: auto;
   font-size: 0.72rem;
   color: var(--muted);
+}
+
+/* One switch between the two unit systems, rather than two options. */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.switch-row__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.switch__side {
+  font-size: 0.72rem;
+  color: var(--muted);
+  transition: color 150ms ease;
+}
+
+.switch input {
+  appearance: none;
+  position: relative;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.switch input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.switch input:checked {
+  background: rgba(108, 123, 255, 0.28);
+  border-color: var(--accent);
+}
+
+.switch input:checked::after {
+  transform: translateX(18px);
+  background: var(--ink);
+}
+
+.switch input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.switch:has(input:not(:checked)) .switch__side:first-of-type,
+.switch:has(input:checked) .switch__side:last-of-type {
+  color: var(--ink);
 }
 
 .sheet__note {

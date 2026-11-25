@@ -7,9 +7,9 @@
   <meta name="description" content="Swipe-driven 100 card hider deck.">
   <title>Hider Deck</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./css/reset.css?v=12">
-  <link rel="stylesheet" href="./css/layout.css?v=12">
-  <link rel="stylesheet" href="./css/card.css?v=12">
+  <link rel="stylesheet" href="./css/reset.css?v=13">
+  <link rel="stylesheet" href="./css/layout.css?v=13">
+  <link rel="stylesheet" href="./css/card.css?v=13">
 </head>
 <body>
   <main class="stage" id="stage">
@@ -73,19 +73,14 @@
         </label>
       </fieldset>
 
-      <fieldset class="sizes sizes--units">
-        <legend class="sr-only">Measurements</legend>
-        <label class="size">
-          <input type="radio" name="units" value="metric">
-          <span>Metric</span>
-          <small>km · m</small>
+      <div class="switch-row">
+        <span class="switch-row__title">Measurements</span>
+        <label class="switch">
+          <span class="switch__side">Metric</span>
+          <input id="units-switch" type="checkbox" role="switch" aria-label="Use imperial measurements">
+          <span class="switch__side">Imperial</span>
         </label>
-        <label class="size">
-          <input type="radio" name="units" value="imperial">
-          <span>Imperial</span>
-          <small>mi · ft</small>
-        </label>
-      </fieldset>
+      </div>
 
       <p class="sheet__note">
         Time bonus cards show the minutes for the selected game size, and distances
@@ -99,6 +94,6 @@
     <p class="noscript">This deck needs JavaScript enabled.</p>
   </noscript>
 
-  <script type="module" src="./js/app.js?v=12"></script>
+  <script type="module" src="./js/app.js?v=13"></script>
 </body>
 </html>
