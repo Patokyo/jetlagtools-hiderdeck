@@ -140,6 +140,23 @@ export function formatEffect(text, size, units = "metric") {
     .replace(RANGE, (_match, small, medium, large) => [small, medium, large][pick]);
 }
 
+/**
+ * The curse as text, ready to paste into a message to the seekers. A cost the
+ * hider pays with cards is their own business, so only costs that are conditions
+ * on the seekers make it into the copy.
+ */
+export function curseText(card, size, units = "metric") {
+  const lines = [card.title];
+
+  const effect = formatEffect(card.effect, size, units);
+  if (effect) lines.push(effect);
+
+  const cost = formatEffect(card.cost, size, units);
+  if (cost && !curseCost(card.cost)) lines.push(`Casting cost: ${cost}`);
+
+  return lines.join("\n");
+}
+
 /** The short string on a hand card. */
 export function shortLabel(card, size) {
   if (card.kind === "time") return `${minutesFor(card, size)}m`;

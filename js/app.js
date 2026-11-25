@@ -13,11 +13,11 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=13";
-import { POWER_PLAY, SIZES, UNITS, cardOf, curseCost } from "./cards.js?v=13";
-import { trackDrag } from "./gestures.js?v=13";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=13";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=13";
+} from "./deck.js?v=14";
+import { POWER_PLAY, SIZES, UNITS, cardOf, curseCost, curseText } from "./cards.js?v=14";
+import { trackDrag } from "./gestures.js?v=14";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=14";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=14";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -167,6 +167,7 @@ function tryDraw() {
 
 function discardInPlay() {
   const playingHandCard = app.run.review;
+  const played = playingHandCard ? cardOf(app.cards, app.run.active) : null;
   const result = discardAllInPlay(app.run);
   if (result.count === 0) {
     showToast("Nothing in play");
@@ -182,6 +183,7 @@ function discardInPlay() {
 
   renderTable();
   updateIdleHint();
+  if (played?.kind === "curse") copyCurse(played);
   showToast(
     playingHandCard
       ? "Card played"
@@ -329,14 +331,16 @@ function resolveCard(el, action, x) {
 
   // Cards played from hand can have effects on the hand, so they are resolved
   // by kind: power ups run their own effect, curses have to pay their cost.
-  if (action === "discard" && app.run.review) {
-    const card = cardOf(app.cards, app.run.active);
-    if (card && card.kind === "power") {
-      playPowerUp(el, card, x);
+  const playing =
+    action === "discard" && app.run.review ? cardOf(app.cards, app.run.active) : null;
+
+  if (playing) {
+    if (playing.kind === "power") {
+      playPowerUp(el, playing, x);
       return;
     }
-    if (card && card.kind === "curse" && curseCost(card.cost)) {
-      playCurseCard(el, card, x);
+    if (playing.kind === "curse" && curseCost(playing.cost)) {
+      playCurseCard(el, playing, x);
       return;
     }
   }
@@ -357,6 +361,7 @@ function resolveCard(el, action, x) {
   app.cardEl = null;
 
   flyAway(el, action, x);
+  if (playing?.kind === "curse") copyCurse(playing);
   updateIdleHint();
   promoteTopPending();
 }
@@ -568,6 +573,7 @@ function finishCurse(el, { discards = [] } = {}, x = 0) {
   setIntent(el, "");
   app.cardEl = null;
   flyAway(el, "discard", x);
+  if (card?.kind === "curse") copyCurse(card);
   updateIdleHint();
 
   showToast(
@@ -611,6 +617,25 @@ function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
 
   const message = parts.join(" · ");
   showToast(`${message[0].toUpperCase()}${message.slice(1)}`);
+}
+
+/**
+ * A played curse goes to the clipboard, so the hiders can text it to the
+ * seekers without retyping it.
+ */
+function copyCurse(card) {
+  if (!navigator.clipboard?.writeText) {
+    showToast("Could not copy the curse");
+    return;
+  }
+
+  navigator.clipboard.writeText(curseText(card, app.size, app.units)).then(
+    () => showToast("Curse copied to clipboard"),
+    (err) => {
+      console.warn("[deck] could not copy the curse", err);
+      showToast("Could not copy the curse");
+    },
+  );
 }
 
 function snapBack(el) {
