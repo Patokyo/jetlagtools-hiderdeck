@@ -59,9 +59,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  /* Installed on iOS the status bar is drawn over the page and blurs the band
-     it covers, so the HUD starts a little below the safe area rather than
-     sitting against its edge. */
+  /* A little more than the safe area, so the HUD is clear of the status bar on
+     devices that still draw the page under it and of the notch on every one. */
   padding: max(12px, calc(env(safe-area-inset-top, 0px) + 8px)) 12px 6px;
 }
 

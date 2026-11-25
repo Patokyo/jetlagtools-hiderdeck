@@ -440,12 +440,6 @@
   box-shadow: 0 0 0 2px var(--accent), 0 10px 18px -8px rgba(0, 0, 0, 0.9);
 }
 
-/* The hand card currently being read. */
-.mini.is-reading {
-  transform: translateY(-4px);
-  box-shadow: 0 0 0 2px var(--accent), 0 10px 18px -8px rgba(0, 0, 0, 0.9);
-}
-
 /* Cards a played power up or curse cost is asking to use. */
 .mini.is-pick {
   cursor: pointer;

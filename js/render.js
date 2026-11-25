@@ -9,7 +9,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=29";
+} from "./cards.js?v=30";
 
 let toastTimer = null;
 
@@ -281,7 +281,13 @@ export function renderHand(
   const interactive = state.active === null || state.review;
   container.hidden = false;
 
+  // The card being read is already the one on the table, so its mini would be
+  // a second copy of it: the strip carries only what is still waiting in hand.
+  const reading = state.review ? state.active : null;
+
   for (const id of state.hand) {
+    if (id === reading) continue;
+
     const card = cardOf(cardsById, id);
     if (!card) continue;
 
@@ -306,11 +312,6 @@ export function renderHand(
     el.dataset.kind = card.kind;
     if (card.kind === "time") el.dataset.color = card.color;
     fillMini(el, card, size);
-
-    if (state.review && state.active === id) {
-      el.classList.add("is-reading");
-      el.setAttribute("aria-current", "true");
-    }
 
     if (selectable) {
       const picked = pick.picked.includes(id);
