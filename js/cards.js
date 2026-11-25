@@ -186,6 +186,11 @@ export function curseText(card, size, units = "metric") {
   return lines.join("\n");
 }
 
+/** Cards whose text is meant to leave the app: every curse, and Move. */
+export function copyable(card) {
+  return card?.kind === "curse" || (card?.kind === "power" && card.name === "Move");
+}
+
 /** The short string on a hand card. */
 export function shortLabel(card, size) {
   if (card.kind === "time") return `${minutesFor(card, size)}m`;

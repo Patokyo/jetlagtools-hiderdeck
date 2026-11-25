@@ -275,6 +275,49 @@
   font-weight: 600;
 }
 
+/* --- Copy button ------------------------------------------------------ */
+
+/* On the cards the seekers have to be sent — every curse, and Move — the face
+   carries one small button in the bottom right. The two sheets are the whole
+   label; the card's own title says what it copies. */
+.card__copy {
+  position: absolute;
+  z-index: 3;
+  right: 7px;
+  bottom: 7px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(20, 22, 28, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #3d4353;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+
+.card__copy-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.card__copy:hover,
+.card__copy:focus-visible {
+  color: #14161c;
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Keeps the last line of a copied card's own text out from under the button. */
+.card--copyable .card__cost,
+.card--copyable .card__desc {
+  padding-right: 30px;
+}
+
 /* --- Colour bands ----------------------------------------------------- */
 
 .card[data-color="Red"],

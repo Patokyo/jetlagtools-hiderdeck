@@ -15,7 +15,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=31";
+} from "./deck.js?v=32";
 import {
   POWER_PLAY,
   SIZES,
@@ -24,10 +24,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=31";
-import { trackDrag } from "./gestures.js?v=31";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=31";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=31";
+} from "./cards.js?v=32";
+import { trackDrag } from "./gestures.js?v=32";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=32";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=32";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -212,11 +212,6 @@ function discardInPlay() {
 
   renderTable();
   updateIdleHint();
-  if (played?.kind === "curse") copyCurse(played);
-  if (move) {
-    copyMove(played, result.handDiscarded.length);
-    return;
-  }
   showToast(
     playingHandCard
       ? "Card played"
@@ -488,7 +483,7 @@ function showCard(cardId, { animate = true } = {}) {
   const card = cardOf(app.cards, cardId);
   if (!card) return;
 
-  const el = createCardEl(card, app.size, app.units);
+  const el = createCardEl(card, app.size, app.units, copyCard);
   el.dataset.id = cardId;
   el.classList.add("card--live");
   stackEl.append(el);
@@ -566,6 +561,10 @@ function endCardDrag(el, { x, y, vx, vy, moved }) {
 
 function bindCardDrag(el) {
   trackDrag(el, {
+    // The copy button is a press, not a drag: leaving it to the card would
+    // swallow the tap before it could become a click.
+    allow: (event) =>
+      !(event.target instanceof Element) || !event.target.closest(".card__copy"),
     onStart: () => {
       el.style.transition = "none";
     },
@@ -735,8 +734,7 @@ function resolveCard(el, action, x) {
 
   flyAway(el, action, x);
   for (const node of leaving) flyOut(node, "discard");
-  if (playing?.kind === "curse") copyCurse(playing);
-  else if (action === "keep") showToast(keptMessage(result));
+  if (action === "keep") showToast(keptMessage(result));
   else showToast(result.next ? "Skipped" : "Discarded");
   updateIdleHint();
 
@@ -1004,7 +1002,6 @@ function finishCurse(el, { discards = [] } = {}, x = 0) {
   setIntent(el, "");
   app.cardEl = null;
   flyAway(el, "discard", x);
-  if (card?.kind === "curse") copyCurse(card);
   updateIdleHint();
 
   showToast(
@@ -1048,13 +1045,6 @@ function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
   if (plan.expand) parts.push(`hand ${app.run.handLimit}`);
   if (parts.length === 0) parts.push(`${card?.name ?? "Power up"} played`);
 
-  // Move is an instruction to the seekers, so it goes to the clipboard rather
-  // than only off the table: its own toast says both things at once.
-  if (card?.name === "Move") {
-    copyMove(card, discards.length);
-    return;
-  }
-
   const message = parts.join(" · ");
   showToast(`${message[0].toUpperCase()}${message.slice(1)}`);
 }
@@ -1078,25 +1068,22 @@ function copyText(text, okMessage, failMessage) {
   );
 }
 
-function copyCurse(card) {
-  copyText(
-    curseText(card, app.size, app.units),
-    "Curse copied to clipboard",
-    "Could not copy the curse",
-  );
-}
-
 /**
- * Move has to be sent to the seekers, so playing it copies its whole text. It
- * also takes the rest of the hand with it, so the toast says so.
+ * The copy button on a curse or on Move: the text as the seekers should get it.
+ * Copying is a press of its own rather than something that happens as the card
+ * is played, which is also the gesture iOS wants before it allows a clipboard
+ * write. The text is built on the press, so it matches the current settings.
  */
-function copyMove(card, discarded = 0) {
+function copyCard(card) {
+  const text =
+    card.kind === "curse"
+      ? curseText(card, app.size, app.units)
+      : formatEffect(card.description, app.size, app.units);
+
   copyText(
-    formatEffect(card.description, app.size, app.units),
-    discarded
-      ? `Move played · discarded ${discarded} · copied`
-      : "Move played · copied for the seekers",
-    "Move played · could not copy its text",
+    text,
+    `${card.kind === "curse" ? "Curse" : card.name} copied to clipboard`,
+    "Could not copy to the clipboard",
   );
 }
 

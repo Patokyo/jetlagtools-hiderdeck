@@ -3,13 +3,14 @@
 import {
   cardOf,
   clockFraction,
+  copyable,
   curseName,
   formatEffect,
   fullLabel,
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=31";
+} from "./cards.js?v=32";
 
 let toastTimer = null;
 
@@ -41,6 +42,10 @@ const POWER_ICONS = {
 };
 const POWER_FALLBACK =
   '<path d="M12 2 9.2 8.6 2 9.4l5.4 4.9L5.8 22 12 18l6.2 4-1.6-7.7L22 9.4l-7.2-.8L12 2z"/>';
+
+// Two sheets: the one symbol everyone reads as copy.
+const COPY_ICON =
+  '<path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>';
 
 function svgEl(className, viewBox = "0 0 24 24") {
   const svg = document.createElementNS(SVG_NS, "svg");
@@ -165,10 +170,48 @@ function fillCard(el, card, size, units) {
   return el;
 }
 
-export function createCardEl(card, size, units = "metric") {
+export function createCardEl(card, size, units = "metric", onCopy = null) {
   const el = fillCard(document.createElement("article"), card, size, units);
-  el.setAttribute("role", "img");
   el.setAttribute("aria-label", fullLabel(card, size));
+
+  if (onCopy && copyable(card)) {
+    // A card carrying a button of its own is a group, not a picture, or the
+    // button would be hidden from assistive tech.
+    el.setAttribute("role", "group");
+    el.classList.add("card--copyable");
+    el.append(copyButton(card, onCopy));
+  } else {
+    el.setAttribute("role", "img");
+  }
+
+  return el;
+}
+
+/**
+ * The copy button in the bottom right of a card the seekers have to receive:
+ * every curse, and Move. The two sheets are the whole label, so the accessible
+ * name carries the card's own title.
+ */
+function copyButton(card, onCopy) {
+  const el = node("button", "card__copy");
+  el.type = "button";
+  el.title = "Copy to clipboard";
+  el.setAttribute(
+    "aria-label",
+    `Copy ${card.kind === "curse" ? card.title : card.name} to the clipboard`,
+  );
+
+  const svg = svgEl("card__copy-icon");
+  svg.setAttribute("fill", "currentColor");
+  svg.innerHTML = COPY_ICON;
+  el.append(svg);
+
+  el.addEventListener("click", (event) => {
+    // The card around it decides on drags; this is a press of its own.
+    event.stopPropagation();
+    onCopy(card);
+  });
+
   return el;
 }
 
