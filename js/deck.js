@@ -1,5 +1,7 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
+import { baseId } from "./cards.js?v=7";
+
 export const SCHEMA_VERSION = 3;
 export const DEFAULT_HAND_LIMIT = 6;
 export const MAX_PENDING = 5;
@@ -172,6 +174,64 @@ export function discardAllInPlay(state) {
   };
 }
 
+/** A free instance id for a duplicated card, e.g. "t3" -> "t3~1". */
+export function nextCopyId(state, id) {
+  const used = new Set([...state.deck, ...state.pending, ...state.hand, ...state.discard]);
+  if (state.active !== null) used.add(state.active);
+
+  for (let n = 1; ; n += 1) {
+    const candidate = `${id}~${n}`;
+    if (!used.has(candidate)) return candidate;
+  }
+}
+
+/**
+ * Play the power up being read. The card leaves the hand, the picked cards are
+ * discarded with it, `draw` cards come straight off the deck into the hand,
+ * `expand` raises the hand limit, and `duplicateOf` puts a copy of a hand card
+ * back into the hand. Nothing moves if a pick is not actually in the hand.
+ */
+export function playPower(
+  state,
+  cardId,
+  { discards = [], draw = 0, expand = 0, duplicateOf = null } = {},
+) {
+  if (state.active !== cardId || !state.review) return { state, cardId: null, reason: "idle" };
+
+  const others = state.hand.filter((id) => id !== cardId);
+  const picks = new Set(discards);
+  if (picks.size !== discards.length || !discards.every((id) => others.includes(id))) {
+    return { state, cardId: null, reason: "discards" };
+  }
+  if (duplicateOf !== null && !others.includes(duplicateOf)) {
+    return { state, cardId: null, reason: "duplicate" };
+  }
+
+  const leaving = new Set([cardId, ...discards]);
+  let hand = state.hand.filter((id) => !leaving.has(id));
+  if (duplicateOf !== null) hand = [...hand, nextCopyId(state, duplicateOf)];
+
+  const count = Math.max(0, Math.min(draw, state.deck.length));
+  const drawn = state.deck.slice(0, count);
+  hand = [...hand, ...drawn];
+
+  return {
+    state: {
+      ...state,
+      active: null,
+      review: false,
+      deck: state.deck.slice(count),
+      hand,
+      handLimit: state.handLimit + expand,
+      discard: [...state.discard, cardId, ...discards],
+      updatedAt: Date.now(),
+    },
+    cardId,
+    drawn,
+    reason: null,
+  };
+}
+
 /** The card in play is thrown away for good. */
 export function discardActive(state) {
   if (state.active === null) return { state, cardId: null };
@@ -220,7 +280,9 @@ export function sanitize(raw, validIds) {
   if (!Array.isArray(pending)) return null;
   if (typeof handLimit !== "number" || !Number.isFinite(handLimit) || handLimit < 1) return null;
 
-  const isId = (id) => typeof id === "string" && validIds.has(id);
+  // Instance ids carry a "~n" suffix when a card was duplicated; the card
+  // behind it is the id before the suffix.
+  const isId = (id) => typeof id === "string" && validIds.has(baseId(id));
   if (!deck.every(isId) || !hand.every(isId) || !discard.every(isId) || !pending.every(isId))
     return null;
   if (active !== null && !isId(active)) return null;

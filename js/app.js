@@ -10,12 +10,13 @@ import {
   focusHand,
   focusPending,
   keepActive,
+  playPower,
   sanitize,
-} from "./deck.js?v=6";
-import { SIZES } from "./cards.js?v=6";
-import { trackDrag } from "./gestures.js?v=6";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=6";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=6";
+} from "./deck.js?v=7";
+import { POWER_PLAY, SIZES, cardOf } from "./cards.js?v=7";
+import { trackDrag } from "./gestures.js?v=7";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=7";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=7";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -43,6 +44,8 @@ const app = {
   run: null,
   cardEl: null,
   size: "medium",
+  // Set while a played power up is waiting for cards to be picked.
+  power: null,
 };
 
 boot().catch((err) => {
@@ -86,7 +89,13 @@ async function boot() {
 function renderTable() {
   renderHud(app.run, hudEls, app.cards, app.size);
   renderPeek(app.run, stackEl, app.cards, focusCard, app.size);
-  renderHand(app.run, handEl, app.cards, focusHandCard, app.size);
+  renderHand(app.run, handEl, app.cards, focusHandCard, app.size, pickState());
+}
+
+/** Hand cards become buttons when a power up is asking which ones to use. */
+function pickState() {
+  if (!app.power) return null;
+  return { mode: app.power.mode, need: app.power.need, picked: app.power.picked, onPick: pickForPower };
 }
 
 /* --- drawing --------------------------------------------------------- */
@@ -160,6 +169,7 @@ function discardInPlay() {
 
   app.run = result.state;
   persist();
+  app.power = null;
 
   app.cardEl?.remove();
   app.cardEl = null;
@@ -215,10 +225,11 @@ function focusHandCard(cardId) {
 }
 
 function showCard(cardId, { animate = true } = {}) {
-  const card = app.cards.get(cardId);
+  const card = cardOf(app.cards, cardId);
   if (!card) return;
 
   const el = createCardEl(card, app.size);
+  el.dataset.id = cardId;
   el.classList.add("card--live");
   stackEl.append(el);
   fitCard(el);
@@ -281,6 +292,15 @@ function bindCardDrag(el) {
 function resolveCard(el, action, x) {
   if (app.cardEl !== el) return;
 
+  // Power ups can have effects on the hand, so they are resolved by name.
+  if (action === "discard" && app.run.review) {
+    const card = cardOf(app.cards, app.run.active);
+    if (card && card.kind === "power") {
+      playPowerUp(el, card, x);
+      return;
+    }
+  }
+
   const result = action === "keep" ? keepActive(app.run) : discardActive(app.run);
   if (!result.cardId) {
     snapBack(el);
@@ -289,10 +309,17 @@ function resolveCard(el, action, x) {
 
   app.run = result.state;
   persist();
+  app.power = null;
   renderTable();
   setIntent(el, "");
   app.cardEl = null;
 
+  flyAway(el, action, x);
+  updateIdleHint();
+}
+
+/** Slide a resolved card off the table and drop it from the DOM. */
+function flyAway(el, action, x) {
   const offset = Math.max(-60, Math.min(60, x * 0.35));
   el.style.transition = `transform ${EXIT_MS}ms ease-in, opacity ${EXIT_MS}ms ease-in`;
   el.style.transform = `translate(${offset}px, ${action === "keep" ? "130%" : "-130%"}) rotate(${
@@ -303,8 +330,109 @@ function resolveCard(el, action, x) {
   // transitionend can be skipped (reduced motion / backgrounded tab); the timer is the fallback.
   el.addEventListener("transitionend", () => el.remove(), { once: true });
   setTimeout(() => el.remove(), EXIT_MS + 120);
+}
 
+/* --- power ups ------------------------------------------------------- */
+
+/**
+ * Playing a power up can need input: which cards to discard, or which card to
+ * copy. Ask for that first; everything else resolves right away.
+ */
+function playPowerUp(el, card, x) {
+  const plan = POWER_PLAY[card.name] ?? {};
+  const others = app.run.hand.filter((id) => id !== app.run.active);
+
+  if (plan.duplicate) {
+    if (others.length === 0) {
+      snapBack(el);
+      showToast("Needs another card in hand");
+      return;
+    }
+
+    app.power = { mode: "duplicate", need: 1, picked: [] };
+    beginPick(el, "Tap a card to duplicate");
+    return;
+  }
+
+  if (plan.discards) {
+    if (others.length < plan.discards) {
+      snapBack(el);
+      showToast(`Needs ${plan.discards} more card${plan.discards === 1 ? "" : "s"} in hand`);
+      return;
+    }
+
+    app.power = { mode: "discard", need: plan.discards, picked: [] };
+    beginPick(el, `Tap ${plan.discards} card${plan.discards === 1 ? "" : "s"} to discard`);
+    return;
+  }
+
+  // Randomize, Veto and Move are settled at the table: the app just lets go of
+  // the card. Draw 1 Expand 1 needs no choice, so it happens now.
+  finishPower(el, {}, x);
+}
+
+function beginPick(el, message) {
+  snapBack(el);
+  renderTable();
+  setHint(message);
+}
+
+function pickForPower(id) {
+  const pick = app.power;
+  if (!pick || !app.cardEl) return;
+
+  if (pick.mode === "duplicate") {
+    finishPower(app.cardEl, { duplicateOf: id });
+    return;
+  }
+
+  pick.picked = pick.picked.includes(id)
+    ? pick.picked.filter((other) => other !== id)
+    : [...pick.picked, id];
+
+  if (pick.picked.length === pick.need) {
+    finishPower(app.cardEl, { discards: pick.picked });
+    return;
+  }
+
+  renderTable();
+  setHint(`Tap ${pick.need - pick.picked.length} more to discard`);
+}
+
+function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
+  const card = cardOf(app.cards, app.run.active);
+  const plan = POWER_PLAY[card?.name] ?? {};
+  const result = playPower(app.run, app.run.active, {
+    discards,
+    draw: plan.draw ?? 0,
+    expand: plan.expand ?? 0,
+    duplicateOf,
+  });
+
+  app.power = null;
+  if (!result.cardId) {
+    snapBack(el);
+    renderTable();
+    return;
+  }
+
+  app.run = result.state;
+  persist();
+  renderTable();
+  setIntent(el, "");
+  app.cardEl = null;
+  flyAway(el, "discard", x);
   updateIdleHint();
+
+  const parts = [];
+  if (discards.length) parts.push(`Discarded ${discards.length}`);
+  if (duplicateOf !== null) parts.push("card duplicated");
+  if (result.drawn.length) parts.push(`drew ${result.drawn.length}`);
+  if (plan.expand) parts.push(`hand ${app.run.handLimit}`);
+  if (parts.length === 0) parts.push(`${card?.name ?? "Power up"} played`);
+
+  const message = parts.join(" · ");
+  showToast(`${message[0].toUpperCase()}${message.slice(1)}`);
 }
 
 function snapBack(el) {
@@ -327,6 +455,7 @@ function newRun() {
   clear();
   app.cardEl?.remove();
   app.cardEl = null;
+  app.power = null;
 
   app.run = createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
   persist();
@@ -361,6 +490,7 @@ function setSize(size) {
   app.size = size;
   saveSettings({ size });
 
+  app.power = null;
   renderTable();
   if (app.run.active) {
     app.cardEl?.remove();

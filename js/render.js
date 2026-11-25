@@ -1,6 +1,7 @@
 // DOM rendering. Card faces, the fan behind the live card, the hand strip.
 
 import {
+  cardOf,
   clockFraction,
   curseName,
   formatEffect,
@@ -8,7 +9,7 @@ import {
   handMinutes,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=6";
+} from "./cards.js?v=7";
 
 let toastTimer = null;
 
@@ -115,7 +116,8 @@ function fillCard(el, card, size) {
       node("div", "card__points", `${minutesFor(card, size)}m`),
       node("div", "card__caption", "Time bonus"),
     );
-    el.append(node("div", "card__band", card.color), main);
+    // The band carries the colour; the colour name would just repeat it.
+    el.append(node("div", "card__band"), main);
     return el;
   }
 
@@ -125,6 +127,7 @@ function fillCard(el, card, size) {
       node("span", "card__kind", "Power up"),
       node("h2", "card__title", card.name),
     );
+    if (card.description) el.append(node("p", "card__desc", card.description));
     return el;
   }
 
@@ -135,7 +138,7 @@ function fillCard(el, card, size) {
   );
 
   el.append(
-    node("span", "card__kind", `Curse ${card.number}`),
+    node("span", "card__kind", "Curse"),
     node("h2", "card__title", card.title),
     node("p", "card__effect", formatEffect(card.effect, size)),
     cost,
@@ -166,14 +169,19 @@ export function createPeekEl(card, depth, size) {
  * measured rather than guessed.
  */
 export function fitCard(el) {
-  const effect = el.querySelector(".card__effect");
-  if (!effect) return;
+  for (const [selector, start, min] of [
+    [".card__effect", 15.5, 7],
+    [".card__desc", 13, 8],
+  ]) {
+    const text = el.querySelector(selector);
+    if (!text) continue;
 
-  let size = 13;
-  effect.style.fontSize = `${size}px`;
-  while (size > 6.5 && effect.scrollHeight > effect.clientHeight) {
-    size -= 0.5;
-    effect.style.fontSize = `${size}px`;
+    let size = start;
+    text.style.fontSize = `${size}px`;
+    while (size > min && text.scrollHeight > text.clientHeight) {
+      size -= 0.5;
+      text.style.fontSize = `${size}px`;
+    }
   }
 }
 
@@ -190,7 +198,7 @@ export function renderPeek(state, container, cardsById, onFocus, size) {
   for (const el of container.querySelectorAll(".card--peek")) el.remove();
 
   state.pending.forEach((id, index) => {
-    const card = cardsById.get(id);
+    const card = cardOf(cardsById, id);
     if (!card) return;
 
     const depth = state.pending.length - index;
@@ -215,14 +223,11 @@ function fillMini(el, card, size) {
       node("span", "mini__name", shortLabel(card, size)),
     );
   } else {
-    el.append(
-      node("span", "mini__tag", `#${card.number}`),
-      node("span", "mini__name", curseName(card.title)),
-    );
+    el.append(node("span", "mini__name", curseName(card.title)));
   }
 }
 
-export function renderHand(state, container, cardsById, onFocus, size) {
+export function renderHand(state, container, cardsById, onFocus, size, pick = null) {
   if (!container) return;
   container.replaceChildren();
 
@@ -237,8 +242,11 @@ export function renderHand(state, container, cardsById, onFocus, size) {
   container.hidden = false;
 
   for (const id of state.hand) {
-    const card = cardsById.get(id);
+    const card = cardOf(cardsById, id);
     if (!card) continue;
+
+    // While a power up is asking for cards, the hand cards are the buttons.
+    const selectable = pick !== null && id !== state.active;
 
     const el = document.createElement(interactive ? "button" : "div");
     if (interactive) {
@@ -258,7 +266,17 @@ export function renderHand(state, container, cardsById, onFocus, size) {
       el.setAttribute("aria-current", "true");
     }
 
-    if (interactive) {
+    if (selectable) {
+      const picked = pick.picked.includes(id);
+      el.classList.add("is-pick");
+      if (picked) el.classList.add("is-picked");
+      el.setAttribute("aria-pressed", String(picked));
+      el.setAttribute(
+        "aria-label",
+        `${pick.mode === "duplicate" ? "Duplicate" : "Discard"} ${fullLabel(card, size)}`,
+      );
+      el.addEventListener("click", () => pick.onPick(id));
+    } else if (interactive) {
       el.setAttribute("aria-label", `Read ${fullLabel(card, size)}`);
       el.addEventListener("click", () => onFocus(id));
     } else {

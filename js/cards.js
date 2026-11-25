@@ -8,6 +8,37 @@ export const SIZE_LABELS = { small: "Small", medium: "Medium", large: "Large" };
 export const MAX_MINUTES = { small: 12, medium: 18, large: 30 };
 
 /**
+ * A duplicated card joins the hand as a second copy of the same card, so its
+ * instance id carries a suffix: "t3" and "t3~1" are both the same Red bonus.
+ */
+export function baseId(id) {
+  const text = String(id);
+  const cut = text.indexOf("~");
+  return cut === -1 ? text : text.slice(0, cut);
+}
+
+/** Look up the card behind an instance id. */
+export function cardOf(cardsById, id) {
+  return cardsById.get(baseId(id));
+}
+
+/**
+ * What playing each power up does. `discards` cards have to be picked from the
+ * hand first, `draw` cards then arrive straight into the hand, `expand` raises
+ * the hand limit, and `duplicate` copies a picked hand card. Randomize, Veto
+ * and Move are settled at the table, so the app only lets go of the card.
+ */
+export const POWER_PLAY = {
+  Randomize: {},
+  Veto: {},
+  Move: {},
+  Duplicate: { duplicate: 1 },
+  "Discard 1 Draw 2": { discards: 1, draw: 2 },
+  "Discard 2 Draw 3": { discards: 2, draw: 3 },
+  "Draw 1 Expand 1": { draw: 1, expand: 1 },
+};
+
+/**
  * Curse text carries per-size ranges, e.g. "[S10, M20, L30]" or "[S5 M10 L15]"
  * (one card is missing its L marker). Every match is replaced with the value
  * for the selected game size.
@@ -36,7 +67,7 @@ export function curseName(title) {
 export function handMinutes(hand, cardsById, size) {
   let total = 0;
   for (const id of hand) {
-    const card = cardsById.get(id);
+    const card = cardOf(cardsById, id);
     if (card && card.kind === "time") total += minutesFor(card, size);
   }
   return total;

@@ -556,127 +556,148 @@
       "id": "p1",
       "kind": "power",
       "name": "Randomize",
-      "short": "Rnd"
+      "short": "Rnd",
+      "description": "Play instead of answering: the seekers pick another unasked question in the same category."
     },
     {
       "id": "p2",
       "kind": "power",
       "name": "Randomize",
-      "short": "Rnd"
+      "short": "Rnd",
+      "description": "Play instead of answering: the seekers pick another unasked question in the same category."
     },
     {
       "id": "p3",
       "kind": "power",
       "name": "Randomize",
-      "short": "Rnd"
+      "short": "Rnd",
+      "description": "Play instead of answering: the seekers pick another unasked question in the same category."
     },
     {
       "id": "p4",
       "kind": "power",
       "name": "Randomize",
-      "short": "Rnd"
+      "short": "Rnd",
+      "description": "Play instead of answering: the seekers pick another unasked question in the same category."
     },
     {
       "id": "p5",
       "kind": "power",
       "name": "Veto",
-      "short": "Veto"
+      "short": "Veto",
+      "description": "Play instead of answering: the seekers get no answer, and you draw no cards."
     },
     {
       "id": "p6",
       "kind": "power",
       "name": "Veto",
-      "short": "Veto"
+      "short": "Veto",
+      "description": "Play instead of answering: the seekers get no answer, and you draw no cards."
     },
     {
       "id": "p7",
       "kind": "power",
       "name": "Veto",
-      "short": "Veto"
+      "short": "Veto",
+      "description": "Play instead of answering: the seekers get no answer, and you draw no cards."
     },
     {
       "id": "p8",
       "kind": "power",
       "name": "Veto",
-      "short": "Veto"
+      "short": "Veto",
+      "description": "Play instead of answering: the seekers get no answer, and you draw no cards."
     },
     {
       "id": "p9",
       "kind": "power",
       "name": "Duplicate",
-      "short": "Dup"
+      "short": "Dup",
+      "description": "Copy any other card in your hand. The original stays."
     },
     {
       "id": "p10",
       "kind": "power",
       "name": "Duplicate",
-      "short": "Dup"
+      "short": "Dup",
+      "description": "Copy any other card in your hand. The original stays."
     },
     {
       "id": "p11",
       "kind": "power",
       "name": "Move",
-      "short": "Move"
+      "short": "Move",
+      "description": "Get time to establish a new hiding zone. Then discard your whole hand."
     },
     {
       "id": "p12",
       "kind": "power",
       "name": "Discard 1 Draw 2",
-      "short": "D1D2"
+      "short": "D1D2",
+      "description": "Discard 1 card to draw 2. Needs a card to discard."
     },
     {
       "id": "p13",
       "kind": "power",
       "name": "Discard 1 Draw 2",
-      "short": "D1D2"
+      "short": "D1D2",
+      "description": "Discard 1 card to draw 2. Needs a card to discard."
     },
     {
       "id": "p14",
       "kind": "power",
       "name": "Discard 1 Draw 2",
-      "short": "D1D2"
+      "short": "D1D2",
+      "description": "Discard 1 card to draw 2. Needs a card to discard."
     },
     {
       "id": "p15",
       "kind": "power",
       "name": "Discard 1 Draw 2",
-      "short": "D1D2"
+      "short": "D1D2",
+      "description": "Discard 1 card to draw 2. Needs a card to discard."
     },
     {
       "id": "p16",
       "kind": "power",
       "name": "Discard 2 Draw 3",
-      "short": "D2D3"
+      "short": "D2D3",
+      "description": "Discard 2 cards to draw 3. Needs 2 cards to discard."
     },
     {
       "id": "p17",
       "kind": "power",
       "name": "Discard 2 Draw 3",
-      "short": "D2D3"
+      "short": "D2D3",
+      "description": "Discard 2 cards to draw 3. Needs 2 cards to discard."
     },
     {
       "id": "p18",
       "kind": "power",
       "name": "Discard 2 Draw 3",
-      "short": "D2D3"
+      "short": "D2D3",
+      "description": "Discard 2 cards to draw 3. Needs 2 cards to discard."
     },
     {
       "id": "p19",
       "kind": "power",
       "name": "Discard 2 Draw 3",
-      "short": "D2D3"
+      "short": "D2D3",
+      "description": "Discard 2 cards to draw 3. Needs 2 cards to discard."
     },
     {
       "id": "p20",
       "kind": "power",
       "name": "Draw 1 Expand 1",
-      "short": "D1E1"
+      "short": "D1E1",
+      "description": "Draw 1 card and raise your hand limit by 1 for the rest of the round."
     },
     {
       "id": "p21",
       "kind": "power",
       "name": "Draw 1 Expand 1",
-      "short": "D1E1"
+      "short": "D1E1",
+      "description": "Draw 1 card and raise your hand limit by 1 for the rest of the round."
     },
     {
       "id": "c1",
