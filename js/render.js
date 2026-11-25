@@ -9,7 +9,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=25";
+} from "./cards.js?v=26";
 
 let toastTimer = null;
 
@@ -144,7 +144,9 @@ function fillCard(el, card, size, units) {
       node("span", "card__kind", "Power up"),
       node("h2", "card__title", card.name),
     );
-    if (card.description) el.append(node("p", "card__desc", card.description));
+    if (card.description) {
+      el.append(node("p", "card__desc", formatEffect(card.description, size, units)));
+    }
     return el;
   }
 

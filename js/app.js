@@ -15,7 +15,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=25";
+} from "./deck.js?v=26";
 import {
   POWER_PLAY,
   SIZES,
@@ -23,10 +23,11 @@ import {
   cardOf,
   curseCost,
   curseText,
-} from "./cards.js?v=25";
-import { trackDrag } from "./gestures.js?v=25";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=25";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=25";
+  formatEffect,
+} from "./cards.js?v=26";
+import { trackDrag } from "./gestures.js?v=26";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=26";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=26";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -834,26 +835,50 @@ function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
   if (plan.expand) parts.push(`hand ${app.run.handLimit}`);
   if (parts.length === 0) parts.push(`${card?.name ?? "Power up"} played`);
 
+  // Move is an instruction to the seekers, so it goes to the clipboard rather
+  // than only off the table: its own toast says both things at once.
+  if (card?.name === "Move") {
+    copyMove(card);
+    return;
+  }
+
   const message = parts.join(" · ");
   showToast(`${message[0].toUpperCase()}${message.slice(1)}`);
 }
 
 /**
- * A played curse goes to the clipboard, so the hiders can text it to the
- * seekers without retyping it.
+ * Played cards that the seekers need to read go to the clipboard, so the hider
+ * can text them over without retyping anything.
  */
-function copyCurse(card) {
+function copyText(text, okMessage, failMessage) {
   if (!navigator.clipboard?.writeText) {
-    showToast("Could not copy the curse");
+    showToast(failMessage);
     return;
   }
 
-  navigator.clipboard.writeText(curseText(card, app.size, app.units)).then(
-    () => showToast("Curse copied to clipboard"),
+  navigator.clipboard.writeText(text).then(
+    () => showToast(okMessage),
     (err) => {
-      console.warn("[deck] could not copy the curse", err);
-      showToast("Could not copy the curse");
+      console.warn("[deck] could not copy to the clipboard", err);
+      showToast(failMessage);
     },
+  );
+}
+
+function copyCurse(card) {
+  copyText(
+    curseText(card, app.size, app.units),
+    "Curse copied to clipboard",
+    "Could not copy the curse",
+  );
+}
+
+/** Move has to be sent to the seekers, so playing it copies its whole text. */
+function copyMove(card) {
+  copyText(
+    formatEffect(card.description, app.size, app.units),
+    "Move played · copied for the seekers",
+    "Move played · could not copy its text",
   );
 }
 

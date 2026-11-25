@@ -28,8 +28,9 @@ export function cardOf(cardsById, id) {
 /**
  * What playing each power up does. `discards` cards have to be picked from the
  * hand first, `draw` cards then arrive straight into the hand, `expand` raises
- * the hand limit, and `duplicate` copies a picked hand card. Randomise, Veto
- * and Move are settled at the table, so the app only lets go of the card.
+ * the hand limit, and `duplicate` copies a picked hand card. Randomise and Veto
+ * are settled at the table, so the app only lets go of the card; Move also
+ * copies its text, which is the part the seekers have to be sent.
  */
 export const POWER_PLAY = {
   Randomise: {},
