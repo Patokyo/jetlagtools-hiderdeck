@@ -119,12 +119,13 @@ body {
   min-height: 0;
 }
 
-/* Every card in play shares one grid cell, so they overlapping without moving
-   the layout. Shifted right by half the fan so the group stays centred. */
+/* Every card in play shares one grid cell, so they overlap without moving the
+   layout. The shift is half the current fan width, so a lone card sits dead
+   centre and a fanned group stays centred as a whole. */
 .stack {
   display: grid;
   place-items: center;
-  transform: translateX(calc(var(--peek-offset) * 2.5));
+  transform: translateX(calc(var(--fan, 0) * var(--peek-offset) / 2));
 }
 
 .stack > * {

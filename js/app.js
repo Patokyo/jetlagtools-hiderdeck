@@ -5,6 +5,7 @@ import {
   MAX_PENDING,
   createRun,
   discardActive,
+  discardAllInPlay,
   drawOver,
   focusPending,
   keepActive,
@@ -97,8 +98,13 @@ function bindTableDraw() {
       hint.style.transform = "";
       hint.style.opacity = "";
       if (!moved) return;
-      const tugged = y > DRAW_DISTANCE || (vy > FLICK_VELOCITY && Math.abs(vx) < Math.abs(vy));
-      if (tugged) tryDraw();
+
+      const vertical = Math.abs(vx) < Math.abs(vy);
+      const pulledDown = y > DRAW_DISTANCE || (vy > FLICK_VELOCITY && vertical);
+      const pushedUp = y < -DRAW_DISTANCE || (vy < -FLICK_VELOCITY && vertical);
+
+      if (pushedUp) discardInPlay();
+      else if (pulledDown) tryDraw();
     },
     onCancel: () => {
       hint.style.transform = "";
@@ -133,6 +139,24 @@ function tryDraw() {
   showCard(result.cardId);
 }
 
+function discardInPlay() {
+  const result = discardAllInPlay(app.run);
+  if (result.count === 0) {
+    showToast("Nothing in play");
+    return;
+  }
+
+  app.run = result.state;
+  persist();
+
+  app.cardEl?.remove();
+  app.cardEl = null;
+
+  renderTable();
+  updateIdleHint();
+  showToast(result.count === 1 ? "Discarded 1 card" : `Discarded ${result.count} cards`);
+}
+
 /* --- focusing a parked card ------------------------------------------ */
 
 function focusCard(cardId) {
@@ -148,7 +172,8 @@ function focusCard(cardId) {
   app.cardEl = null;
 
   renderPeek(app.run, stackEl, app.cards, focusCard);
-  showCard(result.cardId);
+  // Coming forward is a change of focus, not a new draw: no drop from the top.
+  showCard(result.cardId, { animate: false });
 }
 
 function showCard(cardId, { animate = true } = {}) {
@@ -283,10 +308,8 @@ function updateIdleHint() {
   if (app.cardEl) return;
 
   const { deck, hand, handLimit, pending } = app.run;
-  const canDrawNow = deck.length > 0 && hand.length < handLimit && pending.length < MAX_PENDING;
 
-  if (pending.length && canDrawNow) setHint("Tap a card, or swipe down to draw");
-  else if (pending.length) setHint("Tap a card to bring it forward");
+  if (pending.length) setHint("Tap a card · swipe up discards all");
   else if (deck.length === 0) setHint("The deck is empty");
   else if (hand.length >= handLimit) setHint("Hand full — start a new run");
   else setHint("Swipe down to draw");

@@ -13,7 +13,8 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 | Gesture | Result |
 | --- | --- |
 | Swipe down anywhere on the table | Draws the next card. If a card is already in play it drops slightly left and behind the new one |
-| Tap a card peeking out on the left | Refocuses it; the card that was in focus takes its place behind |
+| Tap a card peeking out on the left | Refocuses it — straight to the front, no re-entry animation — and the card that was in focus takes its place behind |
+| Swipe up anywhere on the table | Discards everything still undecided: the live card and the whole fan |
 | Drag the focused card | Repositions/rotates it freely while held |
 | Release high (swipe up past the threshold) | Card is **discarded** to the discard pile |
 | Release low (swipe down past the threshold) | Card is **kept** — it slides down into the hand strip |
@@ -23,6 +24,7 @@ Rules the app has to enforce:
 
 - **Several cards in play** — you can draw before deciding. Each undecided card drops slightly left and behind the new one, so the stack stays readable; tapping a peeking card brings it forward. Five can be in play at once (`MAX_PENDING`) — beyond that the fan would have to stack cards on top of each other, out of reach.
 - **The hand is the strip at the bottom** — keeping a card sends it down there, so the hand is visible against the limit rather than only a counter. Undecided cards are not in the hand: they cost nothing until you keep one.
+- **Swipe up clears the table** — an upward swipe on the table, rather than on a card, discards every undecided card at once. It's the bail-out for a draw you don't want to sort through; kept cards are never touched by it.
 - **Hand limit** — drawing is blocked once the hand is full. The card stays in the deck, and the focused card is not parked (a refused draw never costs you the card in play).
 - **Discard tracking** — discarded cards are removed from play and recorded, not recycled.
 - **Persistence** — deck order, hand, discard pile and hand limit are cached in `localStorage` so a refresh (or a closed tab) resumes exactly where the player left off.

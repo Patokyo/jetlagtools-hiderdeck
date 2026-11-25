@@ -123,6 +123,26 @@ export function keepActive(state) {
   };
 }
 
+/**
+ * Swipe-up escape hatch: throw away the card in play and everything parked
+ * behind it, without deciding any of them one at a time.
+ */
+export function discardAllInPlay(state) {
+  const ids = [...(state.active === null ? [] : [state.active]), ...state.pending];
+  if (ids.length === 0) return { state, count: 0 };
+
+  return {
+    state: {
+      ...state,
+      active: null,
+      pending: [],
+      discard: [...state.discard, ...ids],
+      updatedAt: Date.now(),
+    },
+    count: ids.length,
+  };
+}
+
 /** The card in play is thrown away for good. */
 export function discardActive(state) {
   if (state.active === null) return { state, cardId: null };

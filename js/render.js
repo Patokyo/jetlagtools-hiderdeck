@@ -53,6 +53,9 @@ export function createPeekEl(card, depth) {
  */
 export function renderPeek(state, container, cardsById, onFocus) {
   if (!container) return;
+  // Drives the centring offset: no fan means no shift, so the single card is
+  // centred; the shift grows so the card plus its fan stays centred.
+  container.style.setProperty("--fan", String(state.pending.length));
   for (const el of container.querySelectorAll(".card--peek")) el.remove();
 
   state.pending.forEach((id, index) => {
