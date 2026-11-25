@@ -14,6 +14,7 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 | --- | --- |
 | Swipe down anywhere on the table | Draws the next card. If a card is already in play it drops slightly left and behind the new one, so drawing again is how a multi-card question is set up |
 | Tap a card peeking out on the left | Refocuses it — straight to the front, no re-entry animation — and the card that was in focus takes its place behind |
+| Drag a card peeking out on the left | Grabs it where it sits — no jump to the front — and carries it: down keeps it, up discards it, letting go decides |
 | Tap a card in your hand | Brings it forward to read. Drawing is blocked while it is forward: drag up to **play** it (hand → discard), drag down to put it back |
 | Tap the gear in the HUD | Picks the game size. Small, medium and large change every card's values, and the choice is kept for the next run |
 | Swipe up anywhere on the table | Discards everything still undecided: the live card and the whole fan |
@@ -25,7 +26,7 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 
 Rules the app has to enforce:
 
-- **Several cards in play** — you can draw before deciding. Each undecided card drops slightly left and behind the new one, so the stack stays readable; tapping a peeking card brings it forward. Five can be in play at once (`MAX_PENDING`) — beyond that the fan would have to stack cards on top of each other, out of reach.
+- **Several cards in play** — you can draw before deciding. Each undecided card steps left and behind the new one, far enough that the index in its top-left corner stays readable; tapping a peeking card brings it forward, and dragging one decides it without bringing it forward first. Five can be in play at once (`MAX_PENDING`) — beyond that the fan would have to stack cards on top of each other, out of reach.
 - **The hand is the strip at the bottom** — keeping a card sends it down there, so the hand is visible against the limit rather than only a counter. Undecided cards are not in the hand: they cost nothing until you keep one.
 - **Reading the hand** — pressing a kept card brings it forward full size without taking it out of the hand, so the count stays honest. While it is forward no card can be drawn; playing it moves it to the discard pile and putting it back leaves the hand unchanged.
 - **Power ups play themselves** — Draw 1 Expand 1 draws its card straight into the hand and raises the hand limit by one. Discard 1 Draw 2 and Discard 2 Draw 3 can't be played without that many other cards in hand; once played they ask you to tap the cards to give up, then discard them and draw straight into the hand. Duplicate asks for a card in hand and puts a copy of it back into the hand. Randomize, Veto and Move simply leave the hand, because their effect happens at the table.

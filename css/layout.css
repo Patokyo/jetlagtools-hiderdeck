@@ -14,14 +14,18 @@
      for the fan of parked cards stepping out to the left. */
   --card-h: min(calc(100vh - 216px), calc(80vw * 7 / 5), 640px);
   --mini-h: clamp(62px, 10dvh, 84px);
-  --peek-offset: 14px;
+  /* How far each parked card steps out, and how far it leans. Together they
+     have to leave the corner index showing. */
+  --peek-offset: 44px;
+  --peek-rotate: 1.6deg;
 }
 
 @supports (height: 100dvh) {
   :root {
     --card-h: min(calc(100dvh - 216px), calc(80vw * 7 / 5), 640px);
     --mini-h: clamp(62px, 10dvh, 84px);
-    --peek-offset: 14px;
+    --peek-offset: 42px;
+    --peek-rotate: 1.6deg;
   }
 }
 
@@ -169,9 +173,20 @@ body {
    layout. The shift is half the current fan width, so a lone card sits dead
    centre and a fanned group stays centred as a whole. */
 .stack {
+  /* A wide fan has to fit on a phone, so the cards narrow as it grows: three
+     parked cards plus their corners come to just under the screen width. */
+  --card-w: min(80vw, calc(100vw - var(--fan, 0) * 54px));
+  --card-h: min(calc(100vh - 216px), calc(var(--card-w) * 7 / 5), 640px);
+
   display: grid;
   place-items: center;
-  transform: translateX(calc(var(--fan, 0) * var(--peek-offset) / 2));
+  transform: translateX(calc(var(--fan, 0) * (var(--peek-offset) / 2 + 5px)));
+}
+
+@supports (height: 100dvh) {
+  .stack {
+    --card-h: min(calc(100dvh - 216px), calc(var(--card-w) * 7 / 5), 640px);
+  }
 }
 
 .stack > * {

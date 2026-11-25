@@ -9,7 +9,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=17";
+} from "./cards.js?v=22";
 
 let toastTimer = null;
 
@@ -102,10 +102,27 @@ function clockIcon(card, size) {
   return svg;
 }
 
+/**
+ * The index in the card's top left. It carries the same few words as the hand
+ * strip, so a card parked in the fan can be told apart by the corner it leaves
+ * showing. Decorative: the card's own label already says all of this.
+ */
+function cornerIndex(card, size) {
+  const el = node("div", "card__corner");
+  el.setAttribute("aria-hidden", "true");
+
+  if (card.kind === "power") {
+    el.append(powerIcon(card.name, "card__corner-icon"));
+  }
+  el.append(node("span", "card__corner-text", shortLabel(card, size)));
+  return el;
+}
+
 function fillCard(el, card, size, units) {
   el.classList.add("card", `card--${card.kind}`);
   el.dataset.id = card.id;
   el.dataset.kind = card.kind;
+  el.append(cornerIndex(card, size));
 
   if (card.kind === "time") {
     el.dataset.color = card.color;
@@ -189,13 +206,25 @@ export function fitCard(el) {
  * The fan of cards in play but not yet decided. Newest sits closest behind the
  * live card; each older one steps further left. Only the live card is removed
  * by this module's caller, so peeks are rebuilt in place.
+ *
+ * `onGrab` wires a drag straight onto the peek, so one can be pulled forward
+ * and kept or discarded without being tapped first.
  */
-export function renderPeek(state, container, cardsById, onFocus, size, units = "metric") {
+export function renderPeek(
+  state,
+  container,
+  cardsById,
+  onFocus,
+  size,
+  units = "metric",
+  onGrab = null,
+) {
   if (!container) return;
   // Drives the centring offset: no fan means no shift, so the single card is
   // centred; the shift grows so the card plus its fan stays centred.
   container.style.setProperty("--fan", String(state.pending.length));
-  for (const el of container.querySelectorAll(".card--peek")) el.remove();
+  // A card on its way off the table is mid-flight: leave it to finish.
+  for (const el of container.querySelectorAll(".card--peek:not(.is-leaving)")) el.remove();
 
   state.pending.forEach((id, index) => {
     const card = cardOf(cardsById, id);
@@ -204,6 +233,7 @@ export function renderPeek(state, container, cardsById, onFocus, size, units = "
     const depth = state.pending.length - index;
     const el = createPeekEl(card, depth, size, units);
     el.addEventListener("click", () => onFocus(id));
+    onGrab?.(el, id);
     container.append(el);
     fitCard(el);
   });
