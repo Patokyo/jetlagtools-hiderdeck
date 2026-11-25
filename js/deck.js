@@ -1,10 +1,12 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-import { baseId } from "./cards.js?v=14";
+import { baseId } from "./cards.js?v=15";
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 export const DEFAULT_HAND_LIMIT = 6;
 export const MAX_PENDING = 5;
+/** Most cards one question costs: a photo deals one, Matching and Measuring three. */
+export const MAX_DEAL = 3;
 
 /** Small deterministic PRNG so a shuffle can be reproduced from a seed. */
 export function mulberry32(seed) {
@@ -44,6 +46,7 @@ export function createRun(ids, { handLimit = DEFAULT_HAND_LIMIT } = {}) {
     deck: shuffle(ids, seed),
     active: null,
     review: false,
+    deal: false,
     pending: [],
     hand: [],
     discard: [],
@@ -80,8 +83,39 @@ export function drawCard(state) {
  * If the draw is impossible nothing moves, so a refused draw never costs you
  * the focused card.
  */
+/**
+ * A question costs more than one draw: deal `count` cards face up, keep one and
+ * throw the rest away. The dealt cards are ordinary pending cards with `deal`
+ * set, so focusing between them works exactly like the fan behind the live card.
+ */
+export function dealCards(state, count) {
+  if (state.review) return { state, cards: [], reason: "review" };
+  if (state.active !== null || state.pending.length) return { state, cards: [], reason: "busy" };
+  if (state.deck.length === 0) return { state, cards: [], reason: "empty" };
+
+  const n = Math.max(1, Math.min(count, state.deck.length, MAX_PENDING + 1));
+  const cards = state.deck.slice(0, n);
+  const [first, ...rest] = cards;
+
+  return {
+    state: {
+      ...state,
+      deck: state.deck.slice(n),
+      active: first,
+      pending: rest,
+      deal: true,
+      updatedAt: Date.now(),
+    },
+    cards,
+    cardId: first,
+    reason: null,
+  };
+}
+
 export function drawOver(state) {
   if (state.review) return { state, cardId: null, reason: "review" };
+  // Mid-deal the table is a question being answered, not a place to draw into.
+  if (state.deal) return { state, cardId: null, reason: "deal" };
   if (state.deck.length === 0) return { state, cardId: null, reason: "empty" };
   if (state.pending.length >= MAX_PENDING) return { state, cardId: null, reason: "stacked" };
 
@@ -152,16 +186,21 @@ export function keepActive(state, { replace = null } = {}) {
   }
 
   const cardId = state.active;
+  // Keeping one card of a deal ends the question: the rest are thrown away.
+  const leftover = state.deal ? state.pending : [];
   return {
     state: {
       ...state,
       active: null,
+      pending: state.deal ? [] : state.pending,
+      deal: false,
       hand: [...state.hand.filter((id) => id !== replace), cardId],
-      discard: replace === null ? state.discard : [...state.discard, replace],
+      discard: [...state.discard, ...leftover, ...(replace === null ? [] : [replace])],
       updatedAt: Date.now(),
     },
     cardId,
     replaced: replace,
+    discarded: leftover,
     reason: null,
   };
 }
@@ -181,6 +220,7 @@ export function discardAllInPlay(state) {
       active: null,
       review: false,
       pending: [],
+      deal: false,
       hand: state.hand.filter((id) => !leaving.has(id)),
       discard: [...state.discard, ...ids],
       updatedAt: Date.now(),
@@ -307,6 +347,23 @@ export function discardActive(state) {
     };
   }
 
+  // Mid-deal, throwing a card away skips it: the next dealt card comes forward.
+  if (state.deal) {
+    const [next, ...pending] = state.pending;
+    return {
+      state: {
+        ...state,
+        active: next ?? null,
+        pending,
+        deal: next !== undefined,
+        discard: [...state.discard, cardId],
+        updatedAt: Date.now(),
+      },
+      cardId,
+      next: next ?? null,
+    };
+  }
+
   return {
     state: { ...state, active: null, discard: [...state.discard, cardId], updatedAt: Date.now() },
     cardId,
@@ -326,11 +383,13 @@ export function deckSize(state) {
  */
 export function sanitize(raw, validIds) {
   if (!raw || typeof raw !== "object") return null;
-  if (raw.v !== 1 && raw.v !== 2 && raw.v !== SCHEMA_VERSION) return null;
+  if (!Number.isInteger(raw.v) || raw.v < 1 || raw.v > SCHEMA_VERSION) return null;
 
   const { deck, hand, discard, active, handLimit } = raw;
   const pending = raw.v === 1 ? [] : raw.pending;
   const review = raw.v >= 3 ? raw.review === true : false;
+  // v4 adds the deal flag: the cards in play are one question's draw.
+  const deal = raw.v >= 4 && raw.deal === true && active !== null;
   if (!Array.isArray(deck) || !Array.isArray(hand) || !Array.isArray(discard)) return null;
   if (!Array.isArray(pending)) return null;
   if (typeof handLimit !== "number" || !Number.isFinite(handLimit) || handLimit < 1) return null;
@@ -362,6 +421,7 @@ export function sanitize(raw, validIds) {
     discard,
     active: active ?? null,
     review,
+    deal,
     updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : Date.now(),
   };
 }

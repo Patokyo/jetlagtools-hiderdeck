@@ -117,6 +117,50 @@ export function handMinutes(hand, cardsById, size) {
 }
 
 /**
+ * What the hand is worth when the hider is caught: every time bonus counts, and
+ * a Duplicate in hand copies one of them. The best copy is the biggest bonus,
+ * which is the number a player is actually playing for.
+ */
+export function handScore(hand, cardsById, size) {
+  let base = 0;
+  let best = 0;
+  let copies = 0;
+
+  for (const id of hand) {
+    const card = cardOf(cardsById, id);
+    if (!card) continue;
+
+    if (card.kind === "time") {
+      const minutes = minutesFor(card, size);
+      base += minutes;
+      if (minutes > best) best = minutes;
+    } else if (card.kind === "power" && card.name === "Duplicate") {
+      copies += 1;
+    }
+  }
+
+  const bonus = copies * best;
+  return { base, bonus, copies, best, total: base + bonus };
+}
+
+/** The hand's score as text, ready to paste to the seekers. */
+export function scoreText(hand, cardsById, size) {
+  const { copies, best, total } = handScore(hand, cardsById, size);
+  if (total === 0) return "No time bonus in hand yet.";
+
+  const lines = [`Time bonus in hand: ${total} min`];
+  const parts = [];
+  for (const id of hand) {
+    const card = cardOf(cardsById, id);
+    if (card && card.kind === "time") parts.push(`${card.color} ${minutesFor(card, size)}m`);
+  }
+  if (parts.length) lines.push(parts.join(" · "));
+  if (copies) lines.push(`Duplicate ×${copies} copies the best bonus: +${copies * best}m`);
+
+  return lines.join("\n");
+}
+
+/**
  * Card text for the selected game size and unit system. Distances are written
  * once per unit in cards.json; only the chosen one survives, so a metric player
  * never sees miles and an imperial player never sees kilometres.

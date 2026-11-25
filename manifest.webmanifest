@@ -1,0 +1,19 @@
+{
+  "name": "Hider Deck",
+  "short_name": "Hider Deck",
+  "description": "A virtual hider deck for Jet Lag: Hide + Seek home games.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101319",
+  "theme_color": "#101319",
+  "icons": [
+    {
+      "src": "./assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

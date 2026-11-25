@@ -7,9 +7,13 @@
   <meta name="description" content="Swipe-driven 100 card hider deck.">
   <title>Hider Deck</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./css/reset.css?v=14">
-  <link rel="stylesheet" href="./css/layout.css?v=14">
-  <link rel="stylesheet" href="./css/card.css?v=14">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Hider Deck">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="./css/reset.css?v=15">
+  <link rel="stylesheet" href="./css/layout.css?v=15">
+  <link rel="stylesheet" href="./css/card.css?v=15">
 </head>
 <body>
   <main class="stage" id="stage">
@@ -29,6 +33,11 @@
         </div>
       </dl>
       <div class="hud__actions">
+        <button class="hud__icon" id="score-copy" type="button" aria-label="Copy the time bonus in your hand">
+          <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
+            <path fill="currentColor" d="M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 18H5V4h2v3h10V4h2v16z"/>
+          </svg>
+        </button>
         <button class="hud__icon" id="settings-open" type="button" aria-label="Settings">
           <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
             <path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a6.9 6.9 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/>
@@ -43,7 +52,15 @@
         <div class="stack" id="stack"></div>
       </div>
       <div class="hand" id="hand" role="group" aria-label="Your hand" hidden></div>
-      <p class="hint" id="hint" aria-live="polite">Swipe down to draw</p>
+      <div class="tray">
+        <div class="deal" id="deal" role="group" aria-label="Deal a question" hidden>
+          <span class="deal__label">Deal</span>
+          <button class="deal__chip" type="button" data-deal="1" aria-label="Deal 1 card">1</button>
+          <button class="deal__chip" type="button" data-deal="2" aria-label="Deal 2 cards, keep 1">2</button>
+          <button class="deal__chip" type="button" data-deal="3" aria-label="Deal 3 cards, keep 1">3</button>
+        </div>
+        <p class="hint" id="hint" aria-live="polite">Swipe down to draw</p>
+      </div>
     </section>
   </main>
 
@@ -94,6 +111,6 @@
     <p class="noscript">This deck needs JavaScript enabled.</p>
   </noscript>
 
-  <script type="module" src="./js/app.js?v=14"></script>
+  <script type="module" src="./js/app.js?v=15"></script>
 </body>
 </html>

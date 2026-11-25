@@ -6,10 +6,10 @@ import {
   curseName,
   formatEffect,
   fullLabel,
-  handMinutes,
+  handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=14";
+} from "./cards.js?v=15";
 
 let toastTimer = null;
 
@@ -297,15 +297,29 @@ export function renderHand(state, container, cardsById, onFocus, size, pick = nu
 export function renderHud(state, els, cardsById, size) {
   els.deck.textContent = String(state.deck.length);
   els.hand.textContent = `${state.hand.length}/${state.handLimit}`;
+  if (!els.time) return;
 
-  const minutes = handMinutes(state.hand, cardsById, size);
-  if (els.time) {
-    els.time.textContent = `${minutes}m`;
-    els.time.setAttribute("aria-label", `Total time bonus in hand: ${minutes} minutes`);
-  }
+  // A Duplicate in hand is worth another copy of the best bonus, so the number
+  // the hider is playing for is the score, not just the sum of the time cards.
+  const score = handScore(state.hand, cardsById, size);
+  els.time.textContent = `${score.total}m`;
+
+  const label = score.copies
+    ? `Total time bonus in hand: ${score.total} minutes, ${score.bonus} of them from a Duplicate`
+    : `Total time bonus in hand: ${score.total} minutes`;
+  els.time.setAttribute("aria-label", label);
+  els.time.title = label;
 }
 
-export function showToast(message) {
+const TOAST_MS = 1900;
+// An undo needs time to be noticed and tapped.
+const UNDO_MS = 5200;
+
+/**
+ * The bottom toast. `undo` turns it into an action: the button runs the
+ * callback and takes the message away with it.
+ */
+export function showToast(message, { undo = null } = {}) {
   let el = document.querySelector(".toast");
 
   if (!el) {
@@ -316,11 +330,25 @@ export function showToast(message) {
     document.body.append(el);
   }
 
-  el.textContent = message;
+  el.replaceChildren(document.createTextNode(message));
+  el.classList.toggle("is-action", Boolean(undo));
+
+  if (undo) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "toast__undo";
+    button.textContent = "Undo";
+    button.addEventListener("click", () => {
+      el.classList.remove("is-visible");
+      undo();
+    });
+    el.append(button);
+  }
+
   // Force a reflow so re-showing the same toast replays the transition.
   void el.offsetWidth;
   el.classList.add("is-visible");
 
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("is-visible"), 1900);
+  toastTimer = setTimeout(() => el.classList.remove("is-visible"), undo ? UNDO_MS : TOAST_MS);
 }

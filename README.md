@@ -13,6 +13,7 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 | Gesture | Result |
 | --- | --- |
 | Swipe down anywhere on the table | Draws the next card. If a card is already in play it drops slightly left and behind the new one |
+| Tap a **Deal** chip (1, 2 or 3) | Deals that many cards for one question. Keep one and the rest are thrown away |
 | Tap a card peeking out on the left | Refocuses it — straight to the front, no re-entry animation — and the card that was in focus takes its place behind |
 | Tap a card in your hand | Brings it forward to read. Drawing is blocked while it is forward: drag up to **play** it (hand → discard), drag down to put it back |
 | Tap the gear in the HUD | Picks the game size. Small, medium and large change every card's values, and the choice is kept for the next run |
@@ -21,6 +22,7 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 | Release high (swipe up past the threshold) | Card is **discarded** to the discard pile |
 | Release low (swipe down past the threshold) | Card is **kept** — it slides down into the hand strip |
 | Release in the dead zone | Card snaps back, decision not made |
+| Tap **Undo** in the toast | Restores the run as it was before the last discard, keep, play or deal |
 
 Rules the app has to enforce:
 
@@ -28,10 +30,12 @@ Rules the app has to enforce:
 - **The hand is the strip at the bottom** — keeping a card sends it down there, so the hand is visible against the limit rather than only a counter. Undecided cards are not in the hand: they cost nothing until you keep one.
 - **Reading the hand** — pressing a kept card brings it forward full size without taking it out of the hand, so the count stays honest. While it is forward no card can be drawn; playing it moves it to the discard pile and putting it back leaves the hand unchanged.
 - **Power ups play themselves** — Draw 1 Expand 1 draws its card straight into the hand and raises the hand limit by one. Discard 1 Draw 2 and Discard 2 Draw 3 can't be played without that many other cards in hand; once played they ask you to tap the cards to give up, then discard them and draw straight into the hand. Duplicate asks for a card in hand and puts a copy of it back into the hand. Randomize, Veto and Move simply leave the hand, because their effect happens at the table.
+- **Questions are dealt** — a question costs more than one draw: one card for a photo, three for Matching or Measuring, two for Radar or Thermometer. The Deal chips deal that many at once, so the cards come up together and tapping the fan compares them. Keeping one ends the question by discarding the rest; throwing one away skips it and brings the next forward; swiping up on the table abandons the whole deal. Drawing is blocked while a deal is open.
+- **Every move is undoable** — the toast for a discard, a keep, a played card or a deal carries an Undo button that restores the run as it was. A mis-swipe on a moving train costs nothing. It stays up for about five seconds.
 - **Swipe up clears the table** — an upward swipe on the table, rather than on a card, discards every undecided card at once. It's the bail-out for a draw you don't want to sort through; kept cards are never touched by it.
 - **Hand limit** — a full hand still lets you draw; the card is only in play until you keep it. Keeping into a full hand asks you to pick a card already in the hand to throw away first, so the hand never grows past its limit by keeping. Drawing never costs you the card in play: it only leaves play when you keep or discard it.
 - **Curses pay their casting cost in cards** — a curse whose cost is "Discard a card", "Discard 2 cards", "Discard a time bonus card", "Discard a power up card" or "Discard your hand" can't be played until those cards are picked, exactly like the power ups that discard to draw. The picks go to the discard pile with the curse, and if the hand can't pay, the curse stays in hand. "Discard your hand" needs no picking: it takes the rest of the hand with it.
-- **Discard tracking** — discarded cards are removed from play and recorded, not recycled. The count is not shown in the HUD, which keeps only deck, hand and the total time bonus currently kept in hand.
+- **Discard tracking** — discarded cards are removed from play and recorded, not recycled. The count is not shown in the HUD, which keeps only deck, hand and the hand's score. A Duplicate in hand counts as a second copy of the best time bonus, so the number is what the hider is actually playing for, and the clipboard button in the HUD copies the breakdown to paste to the seekers.
 - **Persistence** — deck order, hand, discard pile and hand limit are cached in `localStorage` so a refresh (or a closed tab) resumes exactly where the player left off.
 
 ---
@@ -97,6 +101,8 @@ Everything in one script. Fastest possible start, and honestly fine for a first 
 
 ```text
 index.html
+manifest.webmanifest # installable app metadata
+sw.js               # offline cache; bump its VERSION with the ?v= stamp
 serve.sh            # localhost dev server (python3, falls back to npx serve)
 .nojekyll
 css/
@@ -139,11 +145,12 @@ One versioned object, saved on every mutation (debounced ~200ms):
 
 ```js
 {
-  v: 3,                 // schema version, for future migrations
+  v: 4,                 // schema version, for future migrations
   seed: 123456789,      // shuffle seed; regenerate to reshuffle
   deck: ["013", "007", ...],   // remaining card ids, in draw order
   active: "013",               // the card in focus, or null
   review: false,               // true when active is a kept card being read
+  deal: false,                 // true while active + pending are one question's deal
   pending: ["007", "042"],     // drawn but undecided, oldest first; fanned behind the live card
   hand: ["042", ...],          // card ids kept
   discard: ["099", ...],       // card ids discarded
@@ -156,7 +163,7 @@ If `v` doesn't match the current version, the JSON is corrupt, an id is unknown,
 
 A duplicated card is a second copy of the same card, so its id carries a `~n` suffix (`t3` and `t3~1` are both the Red bonus); the card behind an id is looked up by the part before the suffix, and the save validation accepts both forms.
 
-Hand limit defaults to **6** (`DEFAULT_HAND_LIMIT` in `js/deck.js`) and only counts kept cards. Drawing moves a card into `active`; swiping down again parks it in `pending` and draws the next one, so you can pull several cards before deciding. `pending` is rendered as the fan behind the live card, and the strip at the bottom renders `hand` — the two are separate: the hand is what you keep, the fan is what is still in play. Focusing a parked card swaps it with whatever is in `active`, so the fan never duplicates a card. A reviewed card is the one case where a card sits in both `hand` and `active`, which is why `review` exists. v1 saves (no `pending`) and v2 saves (no `review`) are upgraded in place.
+Hand limit defaults to **6** (`DEFAULT_HAND_LIMIT` in `js/deck.js`) and only counts kept cards. Drawing moves a card into `active`; swiping down again parks it in `pending` and draws the next one, so you can pull several cards before deciding. `pending` is rendered as the fan behind the live card, and the strip at the bottom renders `hand` — the two are separate: the hand is what you keep, the fan is what is still in play. Focusing a parked card swaps it with whatever is in `active`, so the fan never duplicates a card. A reviewed card is the one case where a card sits in both `hand` and `active`, which is why `review` exists. v1 saves (no `pending`), v2 saves (no `review`) and v3 saves (no `deal`) are upgraded in place.
 
 ---
 
@@ -199,7 +206,10 @@ One-time setup on GitHub: **Settings → Pages → Source → GitHub Actions**. 
 - [x] `localStorage` persistence (resumes mid-run on refresh)
 - [x] New run button
 - [ ] Review the kept hand as cards (currently counts only)
-- [ ] Offline: serve from cache (a service worker is the last thing added, not the first)
+- [x] Deal a question (draw N, keep 1)
+- [x] Undo the last move from the toast
+- [x] Score the hand (Duplicate doubling) and copy it
+- [x] Offline: service worker + manifest, so it installs and runs without signal
 
 ---
 
