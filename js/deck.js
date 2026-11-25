@@ -2,6 +2,7 @@
 
 export const SCHEMA_VERSION = 2;
 export const DEFAULT_HAND_LIMIT = 6;
+export const MAX_PENDING = 5;
 
 /** Small deterministic PRNG so a shuffle can be reproduced from a seed. */
 export function mulberry32(seed) {
@@ -48,7 +49,11 @@ export function createRun(ids, { handLimit = DEFAULT_HAND_LIMIT } = {}) {
 }
 
 export function canDraw(state) {
-  return state.deck.length > 0 && state.hand.length < state.handLimit;
+  return (
+    state.deck.length > 0 &&
+    state.hand.length < state.handLimit &&
+    state.pending.length < MAX_PENDING
+  );
 }
 
 export function canKeep(state) {
@@ -75,9 +80,10 @@ export function drawCard(state) {
  * so an empty deck or a full hand can't cost you the focused card.
  */
 export function drawOver(state) {
-  if (!canDraw(state)) {
-    return { state, cardId: null, reason: state.deck.length === 0 ? "empty" : "full" };
-  }
+  if (state.deck.length === 0) return { state, cardId: null, reason: "empty" };
+  if (state.hand.length >= state.handLimit) return { state, cardId: null, reason: "full" };
+  if (state.pending.length >= MAX_PENDING) return { state, cardId: null, reason: "stacked" };
+
   const base = state.active === null ? state : parkActive(state).state;
   return drawCard(base);
 }

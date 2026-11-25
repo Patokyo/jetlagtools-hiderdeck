@@ -2,6 +2,7 @@
 
 import {
   DEFAULT_HAND_LIMIT,
+  MAX_PENDING,
   createRun,
   discardActive,
   drawOver,
@@ -10,7 +11,7 @@ import {
   sanitize,
 } from "./deck.js";
 import { trackDrag } from "./gestures.js";
-import { createCardEl, renderHud, renderPending, showToast } from "./render.js";
+import { createCardEl, renderHand, renderHud, renderPeek, showToast } from "./render.js";
 import { clear, load, save } from "./storage.js";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
@@ -19,8 +20,8 @@ const TAP_SLOP = 12; // below this the drag counts as a tap, not a swipe
 const EXIT_MS = 320;
 
 const stage = document.getElementById("stage");
-const slot = document.getElementById("slot");
-const pendingEl = document.getElementById("pending");
+const stackEl = document.getElementById("stack");
+const handEl = document.getElementById("hand");
 const hint = document.getElementById("hint");
 const resetButton = document.getElementById("reset");
 const hudEls = {
@@ -55,17 +56,20 @@ async function boot() {
 
   const stored = sanitize(load(), new Set(app.cards.keys()));
   app.run = stored ?? createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
-  renderHud(app.run, hudEls);
-  renderPending(app.run, pendingEl, app.cards, focusCard);
+  renderTable();
   save(app.run);
 
   bindTableDraw();
 
-  if (app.run.active) {
-    showCard(app.run.active, { animate: false });
-  } else {
-    updateIdleHint();
-  }
+  if (app.run.active) showCard(app.run.active, { animate: false });
+  else updateIdleHint();
+}
+
+/** HUD, the fan behind the live card, and the hand strip. */
+function renderTable() {
+  renderHud(app.run, hudEls);
+  renderPeek(app.run, stackEl, app.cards, focusCard);
+  renderHand(app.run, handEl, app.cards);
 }
 
 /* --- drawing --------------------------------------------------------- */
@@ -76,7 +80,7 @@ function bindTableDraw() {
     allow: (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return false;
-      return !target.closest(".card, .mini, .pending, .hud, .toast");
+      return !target.closest(".card, .hand, .hud, .toast");
     },
     onMove: ({ y }) => {
       const pull = Math.max(0, Math.min(y, 140));
@@ -102,6 +106,8 @@ function tryDraw() {
   if (!result.cardId) {
     if (result.reason === "full") {
       showToast(`Hand is full (${app.run.handLimit}/${app.run.handLimit})`);
+    } else if (result.reason === "stacked") {
+      showToast(`${MAX_PENDING} cards in play — decide one first`);
     } else {
       showToast("The deck is empty");
     }
@@ -112,18 +118,12 @@ function tryDraw() {
   app.run = result.state;
   persist();
 
-  // The card that was in play has just been parked; it leaves the slot while
-  // the strip at the bottom picks it up.
-  if (app.cardEl) {
-    const old = app.cardEl;
-    app.cardEl = null;
-    old.style.transition = "transform 200ms ease-in, opacity 200ms ease-in";
-    old.style.transform = "translateY(55%) scale(0.82)";
-    old.style.opacity = "0";
-    setTimeout(() => old.remove(), 220);
-  }
+  // The card that was live has been parked: it is now part of the fan.
+  app.cardEl?.remove();
+  app.cardEl = null;
 
-  renderPending(app.run, pendingEl, app.cards, focusCard);
+  renderPeek(app.run, stackEl, app.cards, focusCard);
+  renderHand(app.run, handEl, app.cards);
   showCard(result.cardId);
 }
 
@@ -141,7 +141,7 @@ function focusCard(cardId) {
   app.cardEl?.remove();
   app.cardEl = null;
 
-  renderPending(app.run, pendingEl, app.cards, focusCard);
+  renderPeek(app.run, stackEl, app.cards, focusCard);
   showCard(result.cardId);
 }
 
@@ -150,7 +150,8 @@ function showCard(cardId, { animate = true } = {}) {
   if (!card) return;
 
   const el = createCardEl(card);
-  slot.append(el);
+  el.classList.add("card--live");
+  stackEl.append(el);
   app.cardEl = el;
 
   if (animate) {
@@ -217,7 +218,7 @@ function resolveCard(el, action, x) {
   app.run = result.state;
   persist();
   renderHud(app.run, hudEls);
-  renderPending(app.run, pendingEl, app.cards, focusCard);
+  renderHand(app.run, handEl, app.cards);
   setIntent(el, "");
   app.cardEl = null;
 
@@ -258,8 +259,7 @@ function newRun() {
 
   app.run = createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
   persist();
-  renderHud(app.run, hudEls);
-  renderPending(app.run, pendingEl, app.cards, focusCard);
+  renderTable();
   updateIdleHint();
   showToast("New run");
 }
@@ -277,12 +277,11 @@ function updateIdleHint() {
   if (app.cardEl) return;
 
   const { deck, hand, handLimit, pending } = app.run;
-  const empty = deck.length === 0;
-  const full = hand.length >= handLimit;
+  const canDrawNow = deck.length > 0 && hand.length < handLimit && pending.length < MAX_PENDING;
 
-  if (pending.length && (empty || full)) setHint("Tap a card below to decide it");
-  else if (pending.length) setHint("Tap a card below, or swipe down to draw");
-  else if (empty) setHint("The deck is empty");
-  else if (full) setHint("Hand full — start a new run");
+  if (pending.length && canDrawNow) setHint("Tap a card, or swipe down to draw");
+  else if (pending.length) setHint("Tap a card to bring it forward");
+  else if (deck.length === 0) setHint("The deck is empty");
+  else if (hand.length >= handLimit) setHint("Hand full — start a new run");
   else setHint("Swipe down to draw");
 }

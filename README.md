@@ -12,16 +12,17 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 
 | Gesture | Result |
 | --- | --- |
-| Swipe down anywhere on the table | Draws the next card. If a card is already in play it drops to the strip at the bottom and the new card takes focus |
-| Tap a card in the bottom strip | Refocuses it; the card that was in focus takes its place in the strip |
+| Swipe down anywhere on the table | Draws the next card. If a card is already in play it drops slightly left and behind the new one |
+| Tap a card peeking out on the left | Refocuses it; the card that was in focus takes its place behind |
 | Drag the focused card | Repositions/rotates it freely while held |
 | Release high (swipe up past the threshold) | Card is **discarded** to the discard pile |
-| Release low (swipe down past the threshold) | Card is **kept** in hand |
+| Release low (swipe down past the threshold) | Card is **kept** — it slides down into the hand strip |
 | Release in the dead zone | Card snaps back, decision not made |
 
 Rules the app has to enforce:
 
-- **Several cards in play** — you can keep drawing before deciding. Each drawn card parks in the bottom strip until you focus it and keep or discard it, so nothing is lost by drawing ahead.
+- **Several cards in play** — you can draw before deciding. Each undecided card drops slightly left and behind the new one, so the stack stays readable; tapping a peeking card brings it forward. Five can be in play at once (`MAX_PENDING`) — beyond that the fan would have to stack cards on top of each other, out of reach.
+- **The hand is the strip at the bottom** — keeping a card sends it down there, so the hand is visible against the limit rather than only a counter. Undecided cards are not in the hand: they cost nothing until you keep one.
 - **Hand limit** — drawing is blocked once the hand is full. The card stays in the deck, and the focused card is not parked (a refused draw never costs you the card in play).
 - **Discard tracking** — discarded cards are removed from play and recorded, not recycled.
 - **Persistence** — deck order, hand, discard pile and hand limit are cached in `localStorage` so a refresh (or a closed tab) resumes exactly where the player left off.
@@ -113,7 +114,7 @@ One versioned object, saved on every mutation (debounced ~200ms):
   seed: 123456789,      // shuffle seed; regenerate to reshuffle
   deck: ["013", "007", ...],   // remaining card ids, in draw order
   active: "013",               // the card in focus, or null
-  pending: ["007", "042"],     // drawn but undecided, left to right
+  pending: ["007", "042"],     // drawn but undecided, oldest first; fanned behind the live card
   hand: ["042", ...],          // card ids kept
   discard: ["099", ...],       // card ids discarded
   handLimit: 6,
@@ -123,7 +124,7 @@ One versioned object, saved on every mutation (debounced ~200ms):
 
 If `v` doesn't match the current version, the JSON is corrupt, an id is unknown, or the same card appears twice, the save is rejected and a fresh run is created rather than half-loading a broken one.
 
-Hand limit defaults to **6** (`DEFAULT_HAND_LIMIT` in `js/deck.js`), and it only counts kept cards. Drawing moves a card into `active`; swiping down again parks it in `pending` and draws the next one, so you can pull several cards before deciding. `pending` cards are not in your hand yet: they cost nothing until you keep one. Focusing a parked card swaps it with whatever is in `active`, so the strip is a set of cards in play, not a copy of the hand. A v1 save (no `pending`) is upgraded in place.
+Hand limit defaults to **6** (`DEFAULT_HAND_LIMIT` in `js/deck.js`) and only counts kept cards. Drawing moves a card into `active`; swiping down again parks it in `pending` and draws the next one, so you can pull several cards before deciding. `pending` is rendered as the fan behind the live card, and the strip at the bottom renders `hand` — the two are separate: the hand is what you keep, the fan is what is still in play. Focusing a parked card swaps it with whatever is in `active`, so the fan never duplicates a card. A v1 save (no `pending`) is upgraded in place.
 
 ---
 

@@ -8,16 +8,19 @@
   --keep: #3fbf85;
   --discard: #ff6b6b;
 
-  /* Room is reserved for the parked-card strip whether or not it is showing,
-     so drawing a second card never resizes the card in play. */
-  --card-h: min(calc(100vh - 216px), calc(88vw * 7 / 5), 640px);
+  /* Room is reserved for the hand strip whether or not it is showing, so
+     keeping a card never resizes the card in play. The width cap leaves room
+     for the fan of parked cards stepping out to the left. */
+  --card-h: min(calc(100vh - 216px), calc(80vw * 7 / 5), 640px);
   --mini-h: clamp(56px, 9dvh, 76px);
+  --peek-offset: 14px;
 }
 
 @supports (height: 100dvh) {
   :root {
-    --card-h: min(calc(100dvh - 216px), calc(88vw * 7 / 5), 640px);
+    --card-h: min(calc(100dvh - 216px), calc(80vw * 7 / 5), 640px);
     --mini-h: clamp(56px, 9dvh, 76px);
+    --peek-offset: 14px;
   }
 }
 
@@ -116,9 +119,21 @@ body {
   min-height: 0;
 }
 
-/* --- Parked cards ---------------------------------------------------- */
+/* Every card in play shares one grid cell, so they overlapping without moving
+   the layout. Shifted right by half the fan so the group stays centred. */
+.stack {
+  display: grid;
+  place-items: center;
+  transform: translateX(calc(var(--peek-offset) * 2.5));
+}
 
-.pending {
+.stack > * {
+  grid-area: 1 / 1;
+}
+
+/* --- Hand ------------------------------------------------------------ */
+
+.hand {
   display: flex;
   align-items: flex-end;
   justify-content: safe center;
@@ -130,11 +145,11 @@ body {
   scrollbar-width: none;
 }
 
-.pending[hidden] {
+.hand[hidden] {
   display: none;
 }
 
-.pending::-webkit-scrollbar {
+.hand::-webkit-scrollbar {
   display: none;
 }
 
