@@ -1,12 +1,13 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-import { baseId } from "./cards.js?v=16";
+import { baseId } from "./cards.js?v=17";
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 export const DEFAULT_HAND_LIMIT = 6;
 export const MAX_PENDING = 5;
-/** Most cards one question costs: a photo deals one, Matching and Measuring three. */
-export const MAX_DEAL = 3;
+/** Tentacles is the four-draw question, and the only one that keeps two cards. */
+export const TENTACLES_DRAWS = 4;
+export const TENTACLES_KEEPS = 2;
 
 /** Small deterministic PRNG so a shuffle can be reproduced from a seed. */
 export function mulberry32(seed) {
@@ -46,7 +47,10 @@ export function createRun(ids, { handLimit = DEFAULT_HAND_LIMIT } = {}) {
     deck: shuffle(ids, seed),
     active: null,
     review: false,
-    deal: false,
+    // How many cards have been drawn for the question being answered, and how
+    // many of them have been kept. Both go back to zero when the question ends.
+    drawn: 0,
+    kept: 0,
     pending: [],
     hand: [],
     discard: [],
@@ -82,45 +86,24 @@ export function drawCard(state) {
  * card is only in play until it is kept, and keeping asks what to replace.
  * If the draw is impossible nothing moves, so a refused draw never costs you
  * the focused card.
+ *
+ * Every draw in the same question adds to `drawn`, which is what tells a photo
+ * question (one card) from a Thermometer (two) or Tentacles (four).
  */
-/**
- * A question costs more than one draw: deal `count` cards face up, keep one and
- * throw the rest away. The dealt cards are ordinary pending cards with `deal`
- * set, so focusing between them works exactly like the fan behind the live card.
- */
-export function dealCards(state, count) {
-  if (state.review) return { state, cards: [], reason: "review" };
-  if (state.active !== null || state.pending.length) return { state, cards: [], reason: "busy" };
-  if (state.deck.length === 0) return { state, cards: [], reason: "empty" };
-
-  const n = Math.max(1, Math.min(count, state.deck.length, MAX_PENDING + 1));
-  const cards = state.deck.slice(0, n);
-  const [first, ...rest] = cards;
-
-  return {
-    state: {
-      ...state,
-      deck: state.deck.slice(n),
-      active: first,
-      pending: rest,
-      deal: true,
-      updatedAt: Date.now(),
-    },
-    cards,
-    cardId: first,
-    reason: null,
-  };
-}
-
 export function drawOver(state) {
   if (state.review) return { state, cardId: null, reason: "review" };
-  // Mid-deal the table is a question being answered, not a place to draw into.
-  if (state.deal) return { state, cardId: null, reason: "deal" };
   if (state.deck.length === 0) return { state, cardId: null, reason: "empty" };
   if (state.pending.length >= MAX_PENDING) return { state, cardId: null, reason: "stacked" };
 
   const base = state.active === null ? state : parkActive(state).state;
-  return drawCard(base);
+  const result = drawCard(base);
+  if (!result.cardId) return result;
+
+  return {
+    state: { ...result.state, drawn: result.state.drawn + 1, updatedAt: Date.now() },
+    cardId: result.cardId,
+    reason: null,
+  };
 }
 
 /** Send the card in play to the bottom strip without deciding it. */
@@ -186,14 +169,18 @@ export function keepActive(state, { replace = null } = {}) {
   }
 
   const cardId = state.active;
-  // Keeping one card of a deal ends the question: the rest are thrown away.
-  const leftover = state.deal ? state.pending : [];
+  // One to three draws keep a single card and throw the rest away; Tentacles
+  // draws four and keeps two, so its first keep leaves the rest in play.
+  const kept = state.kept + 1;
+  const done = kept >= (state.drawn >= TENTACLES_DRAWS ? TENTACLES_KEEPS : 1);
+  const leftover = done ? state.pending : [];
   return {
     state: {
       ...state,
       active: null,
-      pending: state.deal ? [] : state.pending,
-      deal: false,
+      pending: done ? [] : state.pending,
+      drawn: done ? 0 : state.drawn,
+      kept: done ? 0 : kept,
       hand: [...state.hand.filter((id) => id !== replace), cardId],
       discard: [...state.discard, ...leftover, ...(replace === null ? [] : [replace])],
       updatedAt: Date.now(),
@@ -220,7 +207,8 @@ export function discardAllInPlay(state) {
       active: null,
       review: false,
       pending: [],
-      deal: false,
+      drawn: 0,
+      kept: 0,
       hand: state.hand.filter((id) => !leaving.has(id)),
       discard: [...state.discard, ...ids],
       updatedAt: Date.now(),
@@ -347,15 +335,18 @@ export function discardActive(state) {
     };
   }
 
-  // Mid-deal, throwing a card away skips it: the next dealt card comes forward.
-  if (state.deal) {
+  // Skipping a drawn card: the next card of the question comes forward. With
+  // nothing left in play the question is over and the counts start again.
+  if (state.drawn > 0) {
     const [next, ...pending] = state.pending;
+    const open = next !== undefined;
     return {
       state: {
         ...state,
         active: next ?? null,
         pending,
-        deal: next !== undefined,
+        drawn: open ? state.drawn : 0,
+        kept: open ? state.kept : 0,
         discard: [...state.discard, cardId],
         updatedAt: Date.now(),
       },
@@ -388,11 +379,17 @@ export function sanitize(raw, validIds) {
   const { deck, hand, discard, active, handLimit } = raw;
   const pending = raw.v === 1 ? [] : raw.pending;
   const review = raw.v >= 3 ? raw.review === true : false;
-  // v4 adds the deal flag: the cards in play are one question's draw.
-  const deal = raw.v >= 4 && raw.deal === true && active !== null;
   if (!Array.isArray(deck) || !Array.isArray(hand) || !Array.isArray(discard)) return null;
   if (!Array.isArray(pending)) return null;
   if (typeof handLimit !== "number" || !Number.isFinite(handLimit) || handLimit < 1) return null;
+
+  // v5 counts the draws and keeps of the question in play. Older saves only
+  // knew whether the cards in play were one question, so whatever is in play
+  // becomes a question of that many cards.
+  const drawn = raw.v >= 5 ? raw.drawn : active !== null && !review ? 1 + pending.length : 0;
+  const kept = raw.v >= 5 ? raw.kept : 0;
+  if (!Number.isInteger(drawn) || drawn < 0 || drawn > MAX_PENDING + 1) return null;
+  if (!Number.isInteger(kept) || kept < 0 || kept > drawn) return null;
 
   // Instance ids carry a "~n" suffix when a card was duplicated; the card
   // behind it is the id before the suffix.
@@ -421,7 +418,8 @@ export function sanitize(raw, validIds) {
     discard,
     active: active ?? null,
     review,
-    deal,
+    drawn,
+    kept,
     updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : Date.now(),
   };
 }

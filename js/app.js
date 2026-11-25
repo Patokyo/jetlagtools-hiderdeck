@@ -3,8 +3,9 @@
 import {
   DEFAULT_HAND_LIMIT,
   MAX_PENDING,
+  TENTACLES_DRAWS,
+  TENTACLES_KEEPS,
   createRun,
-  dealCards,
   discardActive,
   discardAllInPlay,
   drawOver,
@@ -14,7 +15,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=16";
+} from "./deck.js?v=17";
 import {
   POWER_PLAY,
   SIZES,
@@ -22,10 +23,10 @@ import {
   cardOf,
   curseCost,
   curseText,
-} from "./cards.js?v=16";
-import { trackDrag } from "./gestures.js?v=16";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=16";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=16";
+} from "./cards.js?v=17";
+import { trackDrag } from "./gestures.js?v=17";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=17";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=17";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -43,8 +44,6 @@ const settingsOpen = document.getElementById("settings-open");
 const settingsDialog = document.getElementById("settings");
 const sizeInputs = [...document.querySelectorAll('input[name="size"]')];
 const unitsSwitch = document.getElementById("units-switch");
-const dealBar = document.getElementById("deal");
-const dealChips = [...document.querySelectorAll("[data-deal]")];
 const undoButton = document.getElementById("undo");
 const hudEls = {
   deck: document.getElementById("deck-count"),
@@ -74,7 +73,6 @@ boot().catch((err) => {
 async function boot() {
   resetButton.addEventListener("click", newRun);
   bindSettings();
-  bindDeal();
   undoButton.addEventListener("click", undoLast);
   registerServiceWorker();
 
@@ -114,13 +112,6 @@ function renderTable() {
   renderHud(app.run, hudEls, app.cards, app.size);
   renderPeek(app.run, stackEl, app.cards, focusCard, app.size, app.units);
   renderHand(app.run, handEl, app.cards, focusHandCard, app.size, pickState());
-  renderDealBar();
-}
-
-/** The deal chips only make sense on an idle table with cards left to deal. */
-function renderDealBar() {
-  const idle = app.run.active === null && app.run.pending.length === 0;
-  dealBar.hidden = !(idle && app.run.deck.length > 0);
 }
 
 /** Hand cards become buttons while a card is asking which ones to use. */
@@ -164,49 +155,11 @@ function bindTableDraw() {
   });
 }
 
-/* --- dealing a question ----------------------------------------------- */
-
-/**
- * Every question costs more than one draw (a photo one, Matching and Measuring
- * three), and you keep a single card. Dealing is that in one tap: the cards
- * come up together, keeping one throws the rest away.
- */
-function bindDeal() {
-  for (const chip of dealChips) {
-    chip.addEventListener("click", () => deal(Number(chip.dataset.deal)));
-  }
-}
-
-function deal(count) {
-  const result = dealCards(app.run, count);
-
-  if (!result.cardId) {
-    if (result.reason === "empty") showToast("The deck is empty");
-    else if (result.reason === "review") showToast("Put the card being read back first");
-    else showToast("Decide the cards in play first");
-    updateIdleHint();
-    return;
-  }
-
-  pushUndo();
-  app.run = result.state;
-  persist();
-
-  app.pick = null;
-  app.cardEl?.remove();
-  app.cardEl = null;
-
-  renderTable();
-  showCard(result.cardId);
-}
-
 function tryDraw() {
   const result = drawOver(app.run);
   if (!result.cardId) {
     if (result.reason === "review") {
       showToast("Finish with this card first");
-    } else if (result.reason === "deal") {
-      showToast("Keep one of the dealt cards first");
     } else if (result.reason === "stacked") {
       showToast(`${MAX_PENDING} cards in play — decide one first`);
     } else {
@@ -216,6 +169,7 @@ function tryDraw() {
     return;
   }
 
+  pushUndo();
   app.run = result.state;
   persist();
 
@@ -355,16 +309,23 @@ function showCard(cardId, { animate = true } = {}) {
   setHint(
     app.run.review
       ? "Drag up to play · down puts it back"
-      : app.run.deal
-        ? dealHint()
+      : app.run.drawn > 0
+        ? questionHint()
         : "Drag up to discard · down to keep",
   );
 }
 
-/** How a question's deal reads on the hint line. */
-function dealHint() {
-  const left = 1 + app.run.pending.length;
-  return left > 1 ? `Keep 1 of ${left} · up skips this card` : "Swipe down to keep";
+/**
+ * The hint for an open question. How many cards were drawn decides what is
+ * being asked: one is a photo question, two a Thermometer or Radar, three a
+ * Measuring or Matching, four Tentacles, which keeps two.
+ */
+function questionHint() {
+  const { drawn, kept } = app.run;
+  if (drawn >= TENTACLES_DRAWS) {
+    return kept > 0 ? `Kept ${kept} · keep 1 more` : `Keep 2 of ${drawn} · up skips this card`;
+  }
+  return drawn > 1 ? `Keep 1 of ${drawn} · up skips this card` : "Keep 1 · draw again for 2 or 3";
 }
 
 /* --- resolving ------------------------------------------------------- */
@@ -436,7 +397,7 @@ function resolveCard(el, action, x) {
 
   flyAway(el, action, x);
   if (playing?.kind === "curse") copyCurse(playing);
-  else if (action === "keep") showToast("Kept");
+  else if (action === "keep") showToast(keptMessage(result));
   else showToast(result.next ? "Skipped" : "Discarded");
   updateIdleHint();
 
@@ -444,6 +405,16 @@ function resolveCard(el, action, x) {
   // parked behind comes forward on its own.
   if (app.run.active !== null) showCard(app.run.active, { animate: false });
   else promoteTopPending();
+}
+
+/**
+ * Keeping ends most questions and throws the rest of the draw away, so the
+ * toast says what happened. A Tentacles keep still has one card to pick.
+ */
+function keptMessage(result) {
+  if (app.run.drawn > 0) return `Kept ${app.run.kept} of ${TENTACLES_KEEPS}`;
+  if (result.discarded?.length) return `Kept · discarded ${result.discarded.length}`;
+  return "Kept";
 }
 
 /** Slide a resolved card off the table and drop it from the DOM. */
@@ -872,7 +843,6 @@ function setHint(text) {
 }
 
 function updateIdleHint() {
-  renderDealBar();
   if (app.cardEl) return;
 
   const { deck, hand, handLimit, pending } = app.run;

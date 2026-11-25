@@ -200,8 +200,7 @@ body {
   display: none;
 }
 
-/* Hint text and the deal chips share one row, so the table never resizes
-   when the chips appear. */
+/* The hint line under the hand. */
 .tray {
   display: flex;
   flex-wrap: wrap;
@@ -210,44 +209,6 @@ body {
   gap: 6px 12px;
   min-height: 26px;
   padding: 0 12px;
-}
-
-.deal {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.deal[hidden] {
-  display: none;
-}
-
-.deal__label {
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.deal__chip {
-  min-width: 26px;
-  height: 26px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--panel);
-  font-size: 0.72rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-  transition: border-color 150ms ease, background 150ms ease;
-}
-
-.deal__chip:hover,
-.deal__chip:focus-visible {
-  border-color: var(--accent);
-  background: rgba(108, 123, 255, 0.16);
-  outline: none;
 }
 
 .hint {
