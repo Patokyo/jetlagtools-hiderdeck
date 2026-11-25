@@ -10,10 +10,11 @@ import {
   focusHand,
   focusPending,
   keepActive,
+  playCurse,
   playPower,
   sanitize,
 } from "./deck.js?v=7";
-import { POWER_PLAY, SIZES, cardOf } from "./cards.js?v=7";
+import { POWER_PLAY, SIZES, cardOf, curseCost } from "./cards.js?v=7";
 import { trackDrag } from "./gestures.js?v=7";
 import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=7";
 import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=7";
@@ -44,8 +45,9 @@ const app = {
   run: null,
   cardEl: null,
   size: "medium",
-  // Set while a played power up is waiting for cards to be picked.
-  power: null,
+  // Set while a card being played (or kept into a full hand) is waiting for
+  // hand cards to be picked.
+  pick: null,
 };
 
 boot().catch((err) => {
@@ -92,10 +94,11 @@ function renderTable() {
   renderHand(app.run, handEl, app.cards, focusHandCard, app.size, pickState());
 }
 
-/** Hand cards become buttons when a power up is asking which ones to use. */
+/** Hand cards become buttons while a card is asking which ones to use. */
 function pickState() {
-  if (!app.power) return null;
-  return { mode: app.power.mode, need: app.power.need, picked: app.power.picked, onPick: pickForPower };
+  if (!app.pick) return null;
+  const { mode, need, picked, kind = null } = app.pick;
+  return { mode, need, picked, kind, onPick: pickCard };
 }
 
 /* --- drawing --------------------------------------------------------- */
@@ -137,8 +140,6 @@ function tryDraw() {
   if (!result.cardId) {
     if (result.reason === "review") {
       showToast("Finish with this card first");
-    } else if (result.reason === "full") {
-      showToast(`Hand is full (${app.run.handLimit}/${app.run.handLimit})`);
     } else if (result.reason === "stacked") {
       showToast(`${MAX_PENDING} cards in play — decide one first`);
     } else {
@@ -169,7 +170,7 @@ function discardInPlay() {
 
   app.run = result.state;
   persist();
-  app.power = null;
+  app.pick = null;
 
   app.cardEl?.remove();
   app.cardEl = null;
@@ -193,6 +194,7 @@ function focusCard(cardId) {
   const result = focusPending(app.run, cardId);
   if (!result.cardId) return;
 
+  app.pick = null;
   app.run = result.state;
   persist();
 
@@ -214,6 +216,7 @@ function focusHandCard(cardId) {
     return;
   }
 
+  app.pick = null;
   app.run = result.state;
   persist();
 
@@ -292,24 +295,31 @@ function bindCardDrag(el) {
 function resolveCard(el, action, x) {
   if (app.cardEl !== el) return;
 
-  // Power ups can have effects on the hand, so they are resolved by name.
+  // Cards played from hand can have effects on the hand, so they are resolved
+  // by kind: power ups run their own effect, curses have to pay their cost.
   if (action === "discard" && app.run.review) {
     const card = cardOf(app.cards, app.run.active);
     if (card && card.kind === "power") {
       playPowerUp(el, card, x);
       return;
     }
+    if (card && card.kind === "curse" && curseCost(card.cost)) {
+      playCurseCard(el, card, x);
+      return;
+    }
   }
 
   const result = action === "keep" ? keepActive(app.run) : discardActive(app.run);
   if (!result.cardId) {
-    snapBack(el);
+    // A full hand can still keep a card, but only by giving one up first.
+    if (result.reason === "replace") beginReplace(el);
+    else snapBack(el);
     return;
   }
 
   app.run = result.state;
   persist();
-  app.power = null;
+  app.pick = null;
   renderTable();
   setIntent(el, "");
   app.cardEl = null;
@@ -332,7 +342,7 @@ function flyAway(el, action, x) {
   setTimeout(() => el.remove(), EXIT_MS + 120);
 }
 
-/* --- power ups ------------------------------------------------------- */
+/* --- power ups and curse costs --------------------------------------- */
 
 /**
  * Playing a power up can need input: which cards to discard, or which card to
@@ -349,7 +359,7 @@ function playPowerUp(el, card, x) {
       return;
     }
 
-    app.power = { mode: "duplicate", need: 1, picked: [] };
+    app.pick = { mode: "duplicate", need: 1, picked: [] };
     beginPick(el, "Tap a card to duplicate");
     return;
   }
@@ -361,7 +371,7 @@ function playPowerUp(el, card, x) {
       return;
     }
 
-    app.power = { mode: "discard", need: plan.discards, picked: [] };
+    app.pick = { mode: "discard", need: plan.discards, picked: [] };
     beginPick(el, `Tap ${plan.discards} card${plan.discards === 1 ? "" : "s"} to discard`);
     return;
   }
@@ -377,12 +387,58 @@ function beginPick(el, message) {
   setHint(message);
 }
 
-function pickForPower(id) {
-  const pick = app.power;
+/**
+ * A curse whose casting cost is cards can't leave the hand until those cards
+ * are picked: the cost is part of playing it, not an optional extra.
+ */
+function playCurseCard(el, card, x) {
+  const plan = curseCost(card.cost);
+  const others = app.run.hand.filter((id) => id !== app.run.active);
+  const eligible =
+    plan.kind === null ? others : others.filter((id) => cardOf(app.cards, id)?.kind === plan.kind);
+
+  if (plan.all) {
+    // "Discard your hand" takes the rest of the hand: there is nothing to pick.
+    finishCurse(el, { discards: others }, x);
+    return;
+  }
+
+  if (eligible.length < plan.need) {
+    snapBack(el);
+    showToast(costShortfall(plan));
+    return;
+  }
+
+  app.pick = { mode: "curse", need: plan.need, kind: plan.kind, picked: [] };
+  beginPick(el, costPrompt(plan));
+}
+
+function costPrompt(plan) {
+  if (plan.kind === "time") return "Tap a time bonus to discard";
+  if (plan.kind === "power") return "Tap a power up to discard";
+  return `Tap ${plan.need} ${plan.need === 1 ? "card" : "cards"} to discard`;
+}
+
+function costShortfall(plan) {
+  if (plan.kind === "time") return "Needs a time bonus card in hand";
+  if (plan.kind === "power") return "Needs a power up card in hand";
+  return plan.need === 1
+    ? "Needs another card in hand"
+    : `Needs ${plan.need} cards in hand`;
+}
+
+/** A tap on a hand card while a pick is running. */
+function pickCard(id) {
+  const pick = app.pick;
   if (!pick || !app.cardEl) return;
 
   if (pick.mode === "duplicate") {
     finishPower(app.cardEl, { duplicateOf: id });
+    return;
+  }
+
+  if (pick.mode === "replace") {
+    finishReplace(id);
     return;
   }
 
@@ -391,12 +447,76 @@ function pickForPower(id) {
     : [...pick.picked, id];
 
   if (pick.picked.length === pick.need) {
-    finishPower(app.cardEl, { discards: pick.picked });
+    if (pick.mode === "curse") finishCurse(app.cardEl, { discards: pick.picked });
+    else finishPower(app.cardEl, { discards: pick.picked });
     return;
   }
 
   renderTable();
   setHint(`Tap ${pick.need - pick.picked.length} more to discard`);
+}
+
+/** Keeping into a full hand: ask which card makes room. */
+function beginReplace(el) {
+  app.pick = { mode: "replace", need: 1, picked: [] };
+  beginPick(el, "Hand full — tap a card to replace");
+}
+
+function finishReplace(replaceId) {
+  const el = app.cardEl;
+  const result = keepActive(app.run, { replace: replaceId });
+
+  app.pick = null;
+  if (!result.cardId) {
+    if (el) snapBack(el);
+    renderTable();
+    return;
+  }
+
+  app.run = result.state;
+  persist();
+  renderTable();
+  if (el) {
+    setIntent(el, "");
+    app.cardEl = null;
+    flyAway(el, "keep", 0);
+  }
+  updateIdleHint();
+  showToast("Kept · replaced 1 card");
+}
+
+function finishCurse(el, { discards = [] } = {}, x = 0) {
+  const card = cardOf(app.cards, app.run.active);
+  const plan = curseCost(card?.cost);
+  const need = plan?.all ? discards.length : (plan?.need ?? 0);
+  const result = playCurse(app.run, app.run.active, {
+    discards,
+    need,
+    kind: plan?.kind ?? null,
+    kindOf: (id) => cardOf(app.cards, id)?.kind ?? null,
+  });
+
+  app.pick = null;
+  if (!result.cardId) {
+    snapBack(el);
+    renderTable();
+    showToast("Could not pay the casting cost");
+    return;
+  }
+
+  app.run = result.state;
+  persist();
+  renderTable();
+  setIntent(el, "");
+  app.cardEl = null;
+  flyAway(el, "discard", x);
+  updateIdleHint();
+
+  showToast(
+    discards.length
+      ? `Curse played · discarded ${discards.length}`
+      : `${card?.title ?? "Curse"} played`,
+  );
 }
 
 function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
@@ -409,7 +529,7 @@ function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
     duplicateOf,
   });
 
-  app.power = null;
+  app.pick = null;
   if (!result.cardId) {
     snapBack(el);
     renderTable();
@@ -455,7 +575,7 @@ function newRun() {
   clear();
   app.cardEl?.remove();
   app.cardEl = null;
-  app.power = null;
+  app.pick = null;
 
   app.run = createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
   persist();
@@ -490,7 +610,7 @@ function setSize(size) {
   app.size = size;
   saveSettings({ size });
 
-  app.power = null;
+  app.pick = null;
   renderTable();
   if (app.run.active) {
     app.cardEl?.remove();
@@ -520,7 +640,7 @@ function updateIdleHint() {
   if (pending.length) setHint("Tap a card · swipe up discards all");
   else if (deck.length === 0 && hand.length) setHint("Tap a card below to read it");
   else if (deck.length === 0) setHint("The deck is empty");
-  else if (hand.length >= handLimit) setHint("Hand full — tap a card below");
+  else if (hand.length >= handLimit) setHint("Hand full — keep swaps a card out");
   else if (hand.length) setHint("Swipe down to draw · tap a hand card");
   else setHint("Swipe down to draw");
 }

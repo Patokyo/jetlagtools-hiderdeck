@@ -52,23 +52,18 @@ export function createRun(ids, { handLimit = DEFAULT_HAND_LIMIT } = {}) {
 }
 
 export function canDraw(state) {
-  return (
-    !state.review &&
-    state.deck.length > 0 &&
-    state.hand.length < state.handLimit &&
-    state.pending.length < MAX_PENDING
-  );
+  return !state.review && state.deck.length > 0 && state.pending.length < MAX_PENDING;
 }
 
+/** A card in play can always be kept; a full hand just has to give one up. */
 export function canKeep(state) {
-  return state.active !== null && state.hand.length < state.handLimit;
+  return state.active !== null;
 }
 
 /** Move the top card of the deck into play. Returns why nothing was drawn. */
 export function drawCard(state) {
   if (state.active !== null || state.review) return { state, cardId: null, reason: "busy" };
   if (state.deck.length === 0) return { state, cardId: null, reason: "empty" };
-  if (state.hand.length >= state.handLimit) return { state, cardId: null, reason: "full" };
 
   const [cardId, ...deck] = state.deck;
   return {
@@ -80,13 +75,14 @@ export function drawCard(state) {
 
 /**
  * Draw over whatever is in play: the current card drops to the bottom strip
- * (pending) and a new one comes up. If the draw is impossible nothing moves,
- * so an empty deck or a full hand can't cost you the focused card.
+ * (pending) and a new one comes up. A full hand doesn't block drawing — the
+ * card is only in play until it is kept, and keeping asks what to replace.
+ * If the draw is impossible nothing moves, so a refused draw never costs you
+ * the focused card.
  */
 export function drawOver(state) {
   if (state.review) return { state, cardId: null, reason: "review" };
   if (state.deck.length === 0) return { state, cardId: null, reason: "empty" };
-  if (state.hand.length >= state.handLimit) return { state, cardId: null, reason: "full" };
   if (state.pending.length >= MAX_PENDING) return { state, cardId: null, reason: "stacked" };
 
   const base = state.active === null ? state : parkActive(state).state;
@@ -133,8 +129,13 @@ export function focusHand(state, cardId) {
   };
 }
 
-/** The card in play is stored in hand. */
-export function keepActive(state) {
+/**
+ * The card in play is stored in hand. With the hand already at its limit the
+ * caller has to name the card being replaced (`replace`), so keeping can never
+ * push the hand past the limit; without one nothing moves and the reason is
+ * "replace", which is the cue to ask which card makes room.
+ */
+export function keepActive(state, { replace = null } = {}) {
   // A reviewed card already lives in hand: keeping it just puts it back.
   if (state.review) {
     return {
@@ -143,11 +144,25 @@ export function keepActive(state) {
     };
   }
 
-  if (!canKeep(state)) return { state, cardId: null };
+  if (!canKeep(state)) return { state, cardId: null, reason: "idle" };
+
+  const full = state.hand.length >= state.handLimit;
+  if (full && (replace === null || !state.hand.includes(replace))) {
+    return { state, cardId: null, reason: "replace" };
+  }
+
   const cardId = state.active;
   return {
-    state: { ...state, active: null, hand: [...state.hand, cardId], updatedAt: Date.now() },
+    state: {
+      ...state,
+      active: null,
+      hand: [...state.hand.filter((id) => id !== replace), cardId],
+      discard: replace === null ? state.discard : [...state.discard, replace],
+      updatedAt: Date.now(),
+    },
     cardId,
+    replaced: replace,
+    reason: null,
   };
 }
 
@@ -228,6 +243,46 @@ export function playPower(
     },
     cardId,
     drawn,
+    reason: null,
+  };
+}
+
+/**
+ * Play the curse being read, paying its casting cost. `discards` names the
+ * cards handed over: they leave the hand with the curse and join the discard
+ * pile, so the cost can't be skipped. `need` and `kind` are the cost's rules —
+ * the wrong number of cards, or a card of the wrong kind, is refused and the
+ * curse stays in hand. `kindOf(id)` resolves a hand card's kind.
+ */
+export function playCurse(
+  state,
+  cardId,
+  { discards = [], need = 0, kind = null, kindOf = () => null } = {},
+) {
+  if (state.active !== cardId || !state.review) return { state, cardId: null, reason: "idle" };
+
+  const others = state.hand.filter((id) => id !== cardId);
+  const picks = new Set(discards);
+  if (picks.size !== discards.length || !discards.every((id) => others.includes(id))) {
+    return { state, cardId: null, reason: "discards" };
+  }
+  if (discards.length !== need) return { state, cardId: null, reason: "discards" };
+  if (kind !== null && !discards.every((id) => kindOf(id) === kind)) {
+    return { state, cardId: null, reason: "discards" };
+  }
+
+  const leaving = new Set([cardId, ...discards]);
+  return {
+    state: {
+      ...state,
+      active: null,
+      review: false,
+      hand: state.hand.filter((id) => !leaving.has(id)),
+      discard: [...state.discard, cardId, ...discards],
+      updatedAt: Date.now(),
+    },
+    cardId,
+    paid: discards,
     reason: null,
   };
 }

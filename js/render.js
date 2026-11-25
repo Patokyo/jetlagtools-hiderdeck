@@ -245,16 +245,22 @@ export function renderHand(state, container, cardsById, onFocus, size, pick = nu
     const card = cardOf(cardsById, id);
     if (!card) continue;
 
-    // While a power up is asking for cards, the hand cards are the buttons.
-    const selectable = pick !== null && id !== state.active;
+    // While a played card is asking for cards, the hand is a chooser: only the
+    // cards it can actually take are live, so a tap can't swap the card being
+    // read out from under the pick.
+    const selectable =
+      pick !== null && id !== state.active && (pick.kind == null || card.kind === pick.kind);
+    const inert = pick !== null && !selectable && id !== state.active;
+    const pressable = selectable || (pick === null && interactive);
 
-    const el = document.createElement(interactive ? "button" : "div");
-    if (interactive) {
+    const el = document.createElement(pressable ? "button" : "div");
+    if (pressable) {
       el.type = "button";
       el.className = "mini mini--button";
     } else {
       el.className = "mini";
     }
+    if (inert) el.classList.add("is-inert");
 
     el.dataset.id = id;
     el.dataset.kind = card.kind;
@@ -276,7 +282,7 @@ export function renderHand(state, container, cardsById, onFocus, size, pick = nu
         `${pick.mode === "duplicate" ? "Duplicate" : "Discard"} ${fullLabel(card, size)}`,
       );
       el.addEventListener("click", () => pick.onPick(id));
-    } else if (interactive) {
+    } else if (pressable) {
       el.setAttribute("aria-label", `Read ${fullLabel(card, size)}`);
       el.addEventListener("click", () => onFocus(id));
     } else {

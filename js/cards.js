@@ -39,6 +39,39 @@ export const POWER_PLAY = {
 };
 
 /**
+ * Casting costs that make the player give up cards from the hand, keyed by the
+ * cost text in cards.json with case, punctuation and spacing flattened, so
+ * "Discard 2 cards" and "Discard two cards" land on the same plan.
+ *
+ * `need` is how many cards must be picked, `kind` restricts what may be paid
+ * with (null means any card), and `all` takes the rest of the hand at once.
+ */
+export const CURSE_COSTS = {
+  "discard a card": { need: 1, kind: null },
+  "discard 1 card": { need: 1, kind: null },
+  "discard two cards": { need: 2, kind: null },
+  "discard 2 cards": { need: 2, kind: null },
+  "discard a time bonus card": { need: 1, kind: "time" },
+  "discard a power up card": { need: 1, kind: "power" },
+  "discard your hand": { all: true, kind: null },
+};
+
+function costKey(text) {
+  return String(text ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * The card-paying plan for a curse, or null when its cost is paid at the table
+ * (a photo, a roll of the die, seekers standing somewhere) or it has none.
+ */
+export function curseCost(cost) {
+  return CURSE_COSTS[costKey(cost)] ?? null;
+}
+
+/**
  * Curse text carries per-size ranges, e.g. "[S10, M20, L30]" or "[S5 M10 L15]"
  * (one card is missing its L marker). Every match is replaced with the value
  * for the selected game size.
