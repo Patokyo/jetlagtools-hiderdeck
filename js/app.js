@@ -13,11 +13,11 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=10";
-import { POWER_PLAY, SIZES, cardOf, curseCost } from "./cards.js?v=10";
-import { trackDrag } from "./gestures.js?v=10";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=10";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=10";
+} from "./deck.js?v=11";
+import { POWER_PLAY, SIZES, cardOf, curseCost } from "./cards.js?v=11";
+import { trackDrag } from "./gestures.js?v=11";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=11";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=11";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms

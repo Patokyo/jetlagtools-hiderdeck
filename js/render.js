@@ -9,7 +9,7 @@ import {
   handMinutes,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=10";
+} from "./cards.js?v=11";
 
 let toastTimer = null;
 
@@ -134,7 +134,7 @@ function fillCard(el, card, size) {
   const cost = node("div", "card__cost");
   cost.append(
     node("span", "card__cost-label", "Casting cost"),
-    node("span", "card__cost-text", card.cost || "None"),
+    node("span", "card__cost-text", formatEffect(card.cost, size) || "None"),
   );
 
   el.append(
