@@ -337,6 +337,15 @@
   cursor: default;
 }
 
+/* A hand card lifted out of the strip: a full size face scaled down to sit over
+   its mini, growing as it is carried up to the table. The finger owns it, so it
+   takes no pointer events of its own. */
+.card--ghost {
+  z-index: 35;
+  pointer-events: none;
+  cursor: grabbing;
+}
+
 /* --- Hand ------------------------------------------------------------- */
 
 /* A kept card, parked in the strip at the bottom of the screen. */
@@ -414,10 +423,12 @@
   background: var(--curse, #6b4bd6);
 }
 
-/* A hand card that can be pressed to bring it forward. */
+/* A hand card that can be pressed to bring it forward, or dragged up out of
+   the strip. Sideways panning still scrolls a strip that is too wide. */
 .mini--button {
   font-family: inherit;
   cursor: pointer;
+  touch-action: pan-x;
   -webkit-tap-highlight-color: transparent;
   transition: transform 140ms ease, box-shadow 140ms ease;
 }

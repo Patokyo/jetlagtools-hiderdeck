@@ -9,7 +9,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=28";
+} from "./cards.js?v=29";
 
 let toastTimer = null;
 
@@ -259,7 +259,15 @@ function fillMini(el, card, size) {
   }
 }
 
-export function renderHand(state, container, cardsById, onFocus, size, pick = null) {
+export function renderHand(
+  state,
+  container,
+  cardsById,
+  onFocus,
+  size,
+  pick = null,
+  onGrab = null,
+) {
   if (!container) return;
   container.replaceChildren();
 
@@ -317,6 +325,7 @@ export function renderHand(state, container, cardsById, onFocus, size, pick = nu
     } else if (pressable) {
       el.setAttribute("aria-label", `Read ${fullLabel(card, size)}`);
       el.addEventListener("click", () => onFocus(id));
+      onGrab?.(el, id);
     } else {
       el.setAttribute("role", "img");
       el.setAttribute("aria-label", fullLabel(card, size));

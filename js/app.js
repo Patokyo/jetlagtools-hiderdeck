@@ -15,7 +15,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=28";
+} from "./deck.js?v=29";
 import {
   POWER_PLAY,
   SIZES,
@@ -24,10 +24,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=28";
-import { trackDrag } from "./gestures.js?v=28";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=28";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=28";
+} from "./cards.js?v=29";
+import { trackDrag } from "./gestures.js?v=29";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=29";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=29";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -109,9 +109,18 @@ async function boot() {
 
 /** HUD, the fan behind the live card, and the hand strip. */
 function renderTable() {
+  clearHandDrags();
   renderHud(app.run, hudEls, app.cards, app.size);
   renderPeek(app.run, stackEl, app.cards, focusCard, app.size, app.units, attachPeekGrab);
-  renderHand(app.run, handEl, app.cards, focusHandCard, app.size, pickState());
+  renderHand(
+    app.run,
+    handEl,
+    app.cards,
+    focusHandCardFromTap,
+    app.size,
+    pickState(),
+    attachHandGrab,
+  );
 }
 
 /** Hand cards become buttons while a card is asking which ones to use. */
@@ -283,6 +292,196 @@ function focusHandCard(cardId) {
 
   renderTable();
   showCard(result.cardId, { animate: false });
+}
+
+function focusHandCardFromTap(cardId) {
+  // The click that follows a real drag must not bring the card forward too.
+  if (performance.now() - handDragAt < CLICK_GUARD_MS) return;
+  focusHandCard(cardId);
+}
+
+/* --- lifting a card out of the hand ---------------------------------- */
+
+const PLAY_OVERSHOOT = 48; // px past the table that counts as a swipe up
+const FOCUS_PROGRESS = 0.55; // how grown a released card has to be to stay up
+const CLICK_GUARD_MS = 500; // the click that ends a drag is not a tap
+
+// Drags wired onto the minis of the last render, so a redraw can drop them.
+let handDragDetach = [];
+// When the last real drag on a hand card ended.
+let handDragAt = 0;
+
+function clearHandDrags() {
+  for (const detach of handDragDetach) detach();
+  handDragDetach = [];
+}
+
+/**
+ * A kept card can be lifted out of the strip and carried up to the table. It
+ * grows to full size on the way, stays there when let go near the top, is
+ * played when swiped past the table, and drops back into the hand when let go
+ * low. A press with no drag is still just a tap, which brings it forward.
+ */
+function attachHandGrab(el, cardId) {
+  let ghost = null;
+
+  function release() {
+    if (ghost) {
+      ghost.el.remove();
+      ghost = null;
+    }
+    el.style.opacity = "";
+  }
+
+  handDragDetach.push(
+    trackDrag(el, {
+      onStart: () => {
+        ghost = liftMini(cardId, el);
+        if (ghost) el.style.opacity = "0";
+      },
+      onMove: (payload) => {
+        if (ghost) dragGhost(ghost, payload);
+      },
+      onEnd: (payload) => {
+        if (!ghost) return;
+        const { x, y, vx, vy, moved } = payload;
+
+        if (!moved) {
+          release();
+          return;
+        }
+
+        handDragAt = performance.now();
+        setIntent(ghost.el, "");
+
+        if (wouldPlay(ghost, { y, vx, vy })) {
+          ghost.el.remove();
+          ghost = null;
+          if (!playFromHand(cardId, x)) el.style.opacity = "";
+          return;
+        }
+
+        if (progressOf(ghost, y) >= FOCUS_PROGRESS) {
+          settleGhost(ghost, el, cardId);
+          ghost = null;
+          return;
+        }
+
+        returnGhost(ghost, el);
+        ghost = null;
+      },
+      onCancel: release,
+    }),
+  );
+}
+
+/** A full size copy of the card, placed and scaled exactly over its mini. */
+function liftMini(cardId, miniEl) {
+  const card = cardOf(app.cards, cardId);
+  if (!card) return null;
+
+  const el = createCardEl(card, app.size, app.units);
+  el.dataset.id = cardId;
+  el.classList.add("card--live", "card--ghost");
+  stackEl.append(el);
+  fitCard(el);
+
+  const full = el.getBoundingClientRect();
+  const mini = miniEl.getBoundingClientRect();
+  if (!full.height || !mini.height) {
+    el.remove();
+    return null;
+  }
+
+  const x = mini.left + mini.width / 2 - (full.left + full.width / 2);
+  const y = mini.top + mini.height / 2 - (full.top + full.height / 2);
+  const scale = mini.height / full.height;
+
+  el.style.transition = "none";
+  placeGhost(el, x, y, scale);
+  return { el, x, y, scale, travel: Math.max(1, y) };
+}
+
+function placeGhost(el, x, y, scale) {
+  el.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+}
+
+/** How grown a dragged hand card is: 0 in the strip, 1 at home on the table. */
+function progressOf(ghost, y) {
+  return Math.min(1, Math.max(0, -y / ghost.travel));
+}
+
+function dragGhost(ghost, { x, y, vx, vy }) {
+  const progress = progressOf(ghost, y);
+  // Growth is quick at first so the card is readable early, and exact at the
+  // top so it lands on its resting place rather than jumping into it.
+  const grown = 1 - (1 - progress) ** 2;
+  placeGhost(ghost.el, ghost.x + x, ghost.y + y, ghost.scale + (1 - ghost.scale) * grown);
+  setIntent(ghost.el, wouldPlay(ghost, { y, vx, vy }) ? "discard" : "");
+}
+
+/** A push past the table, or a hard flick once grown, plays the card. */
+function wouldPlay(ghost, { y, vx, vy }) {
+  if (-y - ghost.travel > PLAY_OVERSHOOT) return true;
+  return Math.abs(vx) < Math.abs(vy) && vy <= -FLICK_VELOCITY && progressOf(ghost, y) >= 0.6;
+}
+
+/** Let go near the top: the card settles at full size and stays in play. */
+function settleGhost(ghost, miniEl, cardId) {
+  const { el } = ghost;
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    el.remove();
+    miniEl.style.opacity = "";
+    focusHandCard(cardId);
+  };
+
+  el.style.transition = "transform 200ms cubic-bezier(.22,.9,.24,1)";
+  placeGhost(el, 0, 0, 1);
+  el.addEventListener("transitionend", finish, { once: true });
+  setTimeout(finish, 240);
+}
+
+/** Let go low: the card slides back down into the strip. */
+function returnGhost(ghost, miniEl) {
+  const { el } = ghost;
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    el.remove();
+    miniEl.style.opacity = "";
+  };
+
+  el.style.transition = "transform 220ms cubic-bezier(.22,.9,.24,1)";
+  placeGhost(el, ghost.x, ghost.y, ghost.scale);
+  el.addEventListener("transitionend", finish, { once: true });
+  setTimeout(finish, 260);
+}
+
+/**
+ * Played straight out of the hand: the card becomes the one being read, then
+ * resolves like any played hand card, so power ups run their effect and curses
+ * pay their casting cost. Returns false if the card could not be brought up.
+ */
+function playFromHand(cardId, x) {
+  const focused = focusHand(app.run, cardId);
+  if (!focused.cardId) return false;
+
+  pushUndo();
+  app.run = focused.state;
+  persist();
+  app.pick = null;
+
+  app.cardEl?.remove();
+  app.cardEl = null;
+
+  renderTable();
+  showCard(cardId, { animate: false });
+  resolveCard(app.cardEl, "discard", x);
+  return true;
 }
 
 function showCard(cardId, { animate = true } = {}) {
