@@ -13,11 +13,11 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=9";
-import { POWER_PLAY, SIZES, cardOf, curseCost } from "./cards.js?v=9";
-import { trackDrag } from "./gestures.js?v=9";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=9";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=9";
+} from "./deck.js?v=10";
+import { POWER_PLAY, SIZES, cardOf, curseCost } from "./cards.js?v=10";
+import { trackDrag } from "./gestures.js?v=10";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=10";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=10";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -206,6 +206,33 @@ function focusCard(cardId) {
   showCard(result.cardId, { animate: false });
 }
 
+/**
+ * A card being resolved can leave others parked behind it. Once the table is
+ * clear again the nearest one comes forward on its own, so the fan is never
+ * left sitting there with nothing focused.
+ */
+function promoteTopPending() {
+  if (app.run.active !== null || app.run.review) return false;
+
+  const top = app.run.pending.at(-1);
+  if (!top) return false;
+
+  const result = focusPending(app.run, top);
+  if (!result.cardId) return false;
+
+  app.pick = null;
+  app.run = result.state;
+  persist();
+
+  app.cardEl?.remove();
+  app.cardEl = null;
+
+  renderTable();
+  // It was already on the table, just further back: no drop from the top.
+  showCard(result.cardId, { animate: false });
+  return true;
+}
+
 /** Press a kept card to read it. It stays in hand and blocks drawing. */
 function focusHandCard(cardId) {
   if (app.cardEl?.dataset.id === cardId) return;
@@ -326,6 +353,7 @@ function resolveCard(el, action, x) {
 
   flyAway(el, action, x);
   updateIdleHint();
+  promoteTopPending();
 }
 
 /** Slide a resolved card off the table and drop it from the DOM. */
@@ -506,6 +534,7 @@ function finishReplace(replaceId) {
     flyAway(el, "keep", 0);
   }
   updateIdleHint();
+  promoteTopPending();
   showToast("Kept · replaced 1 card");
 }
 
