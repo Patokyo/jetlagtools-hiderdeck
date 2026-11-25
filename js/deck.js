@@ -1,6 +1,6 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const DEFAULT_HAND_LIMIT = 6;
 
 /** Small deterministic PRNG so a shuffle can be reproduced from a seed. */
@@ -40,6 +40,7 @@ export function createRun(ids, { handLimit = DEFAULT_HAND_LIMIT } = {}) {
     handLimit,
     deck: shuffle(ids, seed),
     active: null,
+    pending: [],
     hand: [],
     discard: [],
     updatedAt: Date.now(),
@@ -47,7 +48,7 @@ export function createRun(ids, { handLimit = DEFAULT_HAND_LIMIT } = {}) {
 }
 
 export function canDraw(state) {
-  return state.active === null && state.deck.length > 0 && state.hand.length < state.handLimit;
+  return state.deck.length > 0 && state.hand.length < state.handLimit;
 }
 
 export function canKeep(state) {
@@ -65,6 +66,44 @@ export function drawCard(state) {
     state: { ...state, deck, active: cardId, updatedAt: Date.now() },
     cardId,
     reason: null,
+  };
+}
+
+/**
+ * Draw over whatever is in play: the current card drops to the bottom strip
+ * (pending) and a new one comes up. If the draw is impossible nothing moves,
+ * so an empty deck or a full hand can't cost you the focused card.
+ */
+export function drawOver(state) {
+  if (!canDraw(state)) {
+    return { state, cardId: null, reason: state.deck.length === 0 ? "empty" : "full" };
+  }
+  const base = state.active === null ? state : parkActive(state).state;
+  return drawCard(base);
+}
+
+/** Send the card in play to the bottom strip without deciding it. */
+export function parkActive(state) {
+  if (state.active === null) return { state, cardId: null };
+  const cardId = state.active;
+  return {
+    state: { ...state, active: null, pending: [...state.pending, cardId], updatedAt: Date.now() },
+    cardId,
+  };
+}
+
+/** Bring a pending card back into play, leaving the previous one in its place. */
+export function focusPending(state, cardId) {
+  const index = state.pending.indexOf(cardId);
+  if (index === -1) return { state, cardId: null };
+
+  const pending = state.pending.slice();
+  if (state.active === null) pending.splice(index, 1);
+  else pending[index] = state.active;
+
+  return {
+    state: { ...state, pending, active: cardId, updatedAt: Date.now() },
+    cardId,
   };
 }
 
@@ -89,32 +128,46 @@ export function discardActive(state) {
 }
 
 export function deckSize(state) {
-  return state.deck.length + (state.active ? 1 : 0);
+  return state.deck.length + state.pending.length + (state.active ? 1 : 0);
 }
 
 /**
  * Validate a persisted run before trusting it: right schema, known card ids,
- * no card duplicated across deck/hand/discard.
+ * no card duplicated across deck/pending/hand/discard.
+ *
+ * v1 had no pending list; those saves are upgraded rather than thrown away.
  */
 export function sanitize(raw, validIds) {
-  if (!raw || typeof raw !== "object" || raw.v !== SCHEMA_VERSION) return null;
+  if (!raw || typeof raw !== "object") return null;
+  if (raw.v !== 1 && raw.v !== SCHEMA_VERSION) return null;
 
   const { deck, hand, discard, active, handLimit } = raw;
+  const pending = raw.v === 1 ? [] : raw.pending;
   if (!Array.isArray(deck) || !Array.isArray(hand) || !Array.isArray(discard)) return null;
+  if (!Array.isArray(pending)) return null;
   if (typeof handLimit !== "number" || !Number.isFinite(handLimit) || handLimit < 1) return null;
 
   const isId = (id) => typeof id === "string" && validIds.has(id);
-  if (!deck.every(isId) || !hand.every(isId) || !discard.every(isId)) return null;
+  if (!deck.every(isId) || !hand.every(isId) || !discard.every(isId) || !pending.every(isId))
+    return null;
   if (active !== null && !isId(active)) return null;
 
-  const seen = new Set([...deck, ...hand, ...discard, ...(active ? [active] : [])]);
-  if (seen.size !== deck.length + hand.length + discard.length + (active ? 1 : 0)) return null;
+  const seen = new Set([
+    ...deck,
+    ...hand,
+    ...discard,
+    ...pending,
+    ...(active ? [active] : []),
+  ]);
+  if (seen.size !== deck.length + hand.length + discard.length + pending.length + (active ? 1 : 0))
+    return null;
 
   return {
     v: SCHEMA_VERSION,
     seed: Number.isFinite(raw.seed) ? raw.seed : 0,
     handLimit,
     deck,
+    pending,
     hand,
     discard,
     active: active ?? null,

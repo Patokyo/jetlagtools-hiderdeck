@@ -26,6 +26,35 @@ export function createCardEl(card) {
   return el;
 }
 
+/**
+ * The strip of drawn-but-undecided cards at the bottom. Each one is a button
+ * so it can be refocused by tap, click or keyboard.
+ */
+export function renderPending(state, container, cardsById, onFocus) {
+  container.replaceChildren();
+
+  if (state.pending.length === 0) {
+    container.hidden = true;
+    return;
+  }
+
+  container.hidden = false;
+  for (const id of state.pending) {
+    const card = cardsById.get(id);
+    if (!card) continue;
+
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "mini";
+    el.dataset.id = id;
+    el.dataset.parity = Number(card.label) % 2 === 0 ? "even" : "odd";
+    el.setAttribute("aria-label", `Focus card ${card.label}`);
+    el.textContent = card.label;
+    el.addEventListener("click", () => onFocus(id));
+    container.append(el);
+  }
+}
+
 export function renderHud(state, els) {
   els.deck.textContent = String(state.deck.length);
   els.hand.textContent = `${state.hand.length}/${state.handLimit}`;

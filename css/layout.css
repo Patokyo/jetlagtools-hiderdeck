@@ -8,13 +8,16 @@
   --keep: #3fbf85;
   --discard: #ff6b6b;
 
-  /* Card is sized off the viewport so it fills most of a phone screen. */
-  --card-h: min(calc(100vh - 132px), calc(88vw * 7 / 5), 640px);
+  /* Room is reserved for the parked-card strip whether or not it is showing,
+     so drawing a second card never resizes the card in play. */
+  --card-h: min(calc(100vh - 216px), calc(88vw * 7 / 5), 640px);
+  --mini-h: clamp(56px, 9dvh, 76px);
 }
 
 @supports (height: 100dvh) {
   :root {
-    --card-h: min(calc(100dvh - 132px), calc(88vw * 7 / 5), 640px);
+    --card-h: min(calc(100dvh - 216px), calc(88vw * 7 / 5), 640px);
+    --mini-h: clamp(56px, 9dvh, 76px);
   }
 }
 
@@ -100,7 +103,7 @@ body {
 .table {
   position: relative;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 1fr auto auto;
   gap: 10px;
   padding: 4px 0 max(14px, env(safe-area-inset-bottom));
   min-height: 0;
@@ -111,6 +114,28 @@ body {
   display: grid;
   place-items: center;
   min-height: 0;
+}
+
+/* --- Parked cards ---------------------------------------------------- */
+
+.pending {
+  display: flex;
+  align-items: flex-end;
+  justify-content: safe center;
+  gap: 8px;
+  min-height: var(--mini-h);
+  padding: 2px 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.pending[hidden] {
+  display: none;
+}
+
+.pending::-webkit-scrollbar {
+  display: none;
 }
 
 .hint {

@@ -4,12 +4,13 @@ import {
   DEFAULT_HAND_LIMIT,
   createRun,
   discardActive,
-  drawCard,
+  drawOver,
+  focusPending,
   keepActive,
   sanitize,
 } from "./deck.js";
 import { trackDrag } from "./gestures.js";
-import { createCardEl, renderHud, showToast } from "./render.js";
+import { createCardEl, renderHud, renderPending, showToast } from "./render.js";
 import { clear, load, save } from "./storage.js";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
@@ -19,6 +20,7 @@ const EXIT_MS = 320;
 
 const stage = document.getElementById("stage");
 const slot = document.getElementById("slot");
+const pendingEl = document.getElementById("pending");
 const hint = document.getElementById("hint");
 const resetButton = document.getElementById("reset");
 const hudEls = {
@@ -54,6 +56,7 @@ async function boot() {
   const stored = sanitize(load(), new Set(app.cards.keys()));
   app.run = stored ?? createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
   renderHud(app.run, hudEls);
+  renderPending(app.run, pendingEl, app.cards, focusCard);
   save(app.run);
 
   bindTableDraw();
@@ -73,7 +76,7 @@ function bindTableDraw() {
     allow: (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return false;
-      return !target.closest(".card, .hud, .toast");
+      return !target.closest(".card, .mini, .pending, .hud, .toast");
     },
     onMove: ({ y }) => {
       const pull = Math.max(0, Math.min(y, 140));
@@ -95,22 +98,50 @@ function bindTableDraw() {
 }
 
 function tryDraw() {
-  if (app.cardEl) return;
-
-  const result = drawCard(app.run);
+  const result = drawOver(app.run);
   if (!result.cardId) {
     if (result.reason === "full") {
       showToast(`Hand is full (${app.run.handLimit}/${app.run.handLimit})`);
-      setHint(`Hand full — ${app.run.handLimit}/${app.run.handLimit}`);
     } else {
       showToast("The deck is empty");
-      setHint("The deck is empty");
     }
+    updateIdleHint();
     return;
   }
 
   app.run = result.state;
   persist();
+
+  // The card that was in play has just been parked; it leaves the slot while
+  // the strip at the bottom picks it up.
+  if (app.cardEl) {
+    const old = app.cardEl;
+    app.cardEl = null;
+    old.style.transition = "transform 200ms ease-in, opacity 200ms ease-in";
+    old.style.transform = "translateY(55%) scale(0.82)";
+    old.style.opacity = "0";
+    setTimeout(() => old.remove(), 220);
+  }
+
+  renderPending(app.run, pendingEl, app.cards, focusCard);
+  showCard(result.cardId);
+}
+
+/* --- focusing a parked card ------------------------------------------ */
+
+function focusCard(cardId) {
+  if (app.cardEl?.dataset.id === cardId) return;
+
+  const result = focusPending(app.run, cardId);
+  if (!result.cardId) return;
+
+  app.run = result.state;
+  persist();
+
+  app.cardEl?.remove();
+  app.cardEl = null;
+
+  renderPending(app.run, pendingEl, app.cards, focusCard);
   showCard(result.cardId);
 }
 
@@ -139,7 +170,7 @@ function showCard(cardId, { animate = true } = {}) {
 
   bindCardDrag(el);
   renderHud(app.run, hudEls);
-  setHint("Swipe up to discard · swipe down to keep");
+  setHint("Drag up to discard · down to keep");
 }
 
 /* --- resolving ------------------------------------------------------- */
@@ -186,6 +217,7 @@ function resolveCard(el, action, x) {
   app.run = result.state;
   persist();
   renderHud(app.run, hudEls);
+  renderPending(app.run, pendingEl, app.cards, focusCard);
   setIntent(el, "");
   app.cardEl = null;
 
@@ -227,6 +259,7 @@ function newRun() {
   app.run = createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
   persist();
   renderHud(app.run, hudEls);
+  renderPending(app.run, pendingEl, app.cards, focusCard);
   updateIdleHint();
   showToast("New run");
 }
@@ -242,7 +275,14 @@ function setHint(text) {
 
 function updateIdleHint() {
   if (app.cardEl) return;
-  if (app.run.deck.length === 0) setHint("The deck is empty");
-  else if (app.run.hand.length >= app.run.handLimit) setHint("Hand full — start a new run");
+
+  const { deck, hand, handLimit, pending } = app.run;
+  const empty = deck.length === 0;
+  const full = hand.length >= handLimit;
+
+  if (pending.length && (empty || full)) setHint("Tap a card below to decide it");
+  else if (pending.length) setHint("Tap a card below, or swipe down to draw");
+  else if (empty) setHint("The deck is empty");
+  else if (full) setHint("Hand full — start a new run");
   else setHint("Swipe down to draw");
 }
