@@ -11,10 +11,11 @@ import {
   focusPending,
   keepActive,
   sanitize,
-} from "./deck.js?v=4";
-import { trackDrag } from "./gestures.js?v=4";
-import { createCardEl, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=4";
-import { clear, load, save } from "./storage.js?v=4";
+} from "./deck.js?v=5";
+import { SIZES } from "./cards.js?v=5";
+import { trackDrag } from "./gestures.js?v=5";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=5";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=5";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -28,16 +29,19 @@ const stackEl = document.getElementById("stack") ?? document.getElementById("slo
 const handEl = document.getElementById("hand");
 const hint = document.getElementById("hint");
 const resetButton = document.getElementById("reset");
+const settingsOpen = document.getElementById("settings-open");
+const settingsDialog = document.getElementById("settings");
+const sizeInputs = [...document.querySelectorAll('input[name="size"]')];
 const hudEls = {
   deck: document.getElementById("deck-count"),
   hand: document.getElementById("hand-count"),
-  discard: document.getElementById("discard-count"),
 };
 
 const app = {
   cards: new Map(),
   run: null,
   cardEl: null,
+  size: "medium",
 };
 
 boot().catch((err) => {
@@ -47,6 +51,7 @@ boot().catch((err) => {
 
 async function boot() {
   resetButton.addEventListener("click", newRun);
+  bindSettings();
 
   try {
     const response = await fetch("./data/cards.json", { cache: "no-cache" });
@@ -60,6 +65,9 @@ async function boot() {
     showToast("Could not load the deck");
     return;
   }
+
+  const settings = loadSettings();
+  if (SIZES.includes(settings.size)) app.size = settings.size;
 
   const stored = sanitize(load(), new Set(app.cards.keys()));
   app.run = stored ?? createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
@@ -76,8 +84,8 @@ async function boot() {
 /** HUD, the fan behind the live card, and the hand strip. */
 function renderTable() {
   renderHud(app.run, hudEls);
-  renderPeek(app.run, stackEl, app.cards, focusCard);
-  renderHand(app.run, handEl, app.cards, focusHandCard);
+  renderPeek(app.run, stackEl, app.cards, focusCard, app.size);
+  renderHand(app.run, handEl, app.cards, focusHandCard, app.size);
 }
 
 /* --- drawing --------------------------------------------------------- */
@@ -209,9 +217,10 @@ function showCard(cardId, { animate = true } = {}) {
   const card = app.cards.get(cardId);
   if (!card) return;
 
-  const el = createCardEl(card);
+  const el = createCardEl(card, app.size);
   el.classList.add("card--live");
   stackEl.append(el);
+  fitCard(el);
   app.cardEl = el;
 
   if (animate) {
@@ -323,6 +332,44 @@ function newRun() {
   renderTable();
   updateIdleHint();
   showToast("New run");
+}
+
+/* --- settings -------------------------------------------------------- */
+
+function bindSettings() {
+  settingsOpen.addEventListener("click", () => {
+    for (const input of sizeInputs) input.checked = input.value === app.size;
+    if (typeof settingsDialog.showModal === "function") settingsDialog.showModal();
+    else settingsDialog.setAttribute("open", "");
+  });
+
+  for (const input of sizeInputs) {
+    input.addEventListener("change", () => {
+      if (input.checked) setSize(input.value);
+    });
+  }
+
+  settingsDialog.addEventListener("click", (event) => {
+    if (event.target === settingsDialog) settingsDialog.close();
+  });
+}
+
+function setSize(size) {
+  if (!SIZES.includes(size) || size === app.size) return;
+
+  app.size = size;
+  saveSettings({ size });
+
+  renderTable();
+  if (app.run.active) {
+    app.cardEl?.remove();
+    app.cardEl = null;
+    showCard(app.run.active, { animate: false });
+  } else {
+    updateIdleHint();
+  }
+
+  showToast(`${size[0].toUpperCase()}${size.slice(1)} game`);
 }
 
 function persist() {

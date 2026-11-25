@@ -15,6 +15,7 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 | Swipe down anywhere on the table | Draws the next card. If a card is already in play it drops slightly left and behind the new one |
 | Tap a card peeking out on the left | Refocuses it — straight to the front, no re-entry animation — and the card that was in focus takes its place behind |
 | Tap a card in your hand | Brings it forward to read. Drawing is blocked while it is forward: drag up to **play** it (hand → discard), drag down to put it back |
+| Tap the gear in the HUD | Picks the game size. Small, medium and large change every card's values, and the choice is kept for the next run |
 | Swipe up anywhere on the table | Discards everything still undecided: the live card and the whole fan |
 | Drag the focused card | Repositions/rotates it freely while held |
 | Release high (swipe up past the threshold) | Card is **discarded** to the discard pile |
@@ -28,8 +29,22 @@ Rules the app has to enforce:
 - **Reading the hand** — pressing a kept card brings it forward full size without taking it out of the hand, so the count stays honest. While it is forward no card can be drawn; playing it moves it to the discard pile and putting it back leaves the hand unchanged.
 - **Swipe up clears the table** — an upward swipe on the table, rather than on a card, discards every undecided card at once. It's the bail-out for a draw you don't want to sort through; kept cards are never touched by it.
 - **Hand limit** — drawing is blocked once the hand is full. The card stays in the deck, and the focused card is not parked (a refused draw never costs you the card in play).
-- **Discard tracking** — discarded cards are removed from play and recorded, not recycled.
+- **Discard tracking** — discarded cards are removed from play and recorded, not recycled. The count is not shown in the HUD, which keeps only deck and hand.
 - **Persistence** — deck order, hand, discard pile and hand limit are cached in `localStorage` so a refresh (or a closed tab) resumes exactly where the player left off.
+
+---
+
+## The deck
+
+`data/cards.json` holds the real 100 cards:
+
+| Kind | Count | Composition |
+| --- | --- | --- |
+| Time bonus | 55 | Red ×25 (2/3/5 min), Orange ×15 (4/6/10), Yellow ×10 (6/9/15), Green ×3 (8/12/20), Blue ×2 (12/18/30) |
+| Power up | 21 | Randomize ×4, Veto ×4, Duplicate ×2, Move ×1, Discard 1 Draw 2 ×4, Discard 2 Draw 3 ×4, Draw 1 Expand 1 ×2 |
+| Curse | 24 | Numbered 1–24, each with its casting cost |
+
+The three time-bonus values and the `[S…, M…, L…]` ranges inside curse text are the small, medium and large game values. Choosing a size in settings re-renders every card on the table with the values for that size — including cards already in hand — without touching the run state, so the deck, hand and discard pile survive a size change.
 
 ---
 
@@ -81,12 +96,13 @@ css/
   card.css          # playing-card face + drag states
 js/
   app.js            # wiring: boot, gesture → rule → render
+  cards.js          # size-aware card text helpers (pure, no DOM)
   deck.js           # shuffle/draw/keep/discard/sanitize (pure, no DOM)
   gestures.js       # pointer tracking, thresholds, velocity
   render.js         # card element, HUD, toast
   storage.js        # localStorage load/save + versioning
 data/
-  cards.json        # the 100 cards (ids "1"–"100")
+  cards.json        # the 100 cards: 55 bonuses, 21 power ups, 24 curses
 assets/
   favicon.svg
 ```

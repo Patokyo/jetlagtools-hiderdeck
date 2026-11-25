@@ -1,13 +1,15 @@
-/* Playing-card face. White card, rounded corners, corner indices. */
+/* Card faces: time bonuses, power ups and curses. White cards, rounded corners. */
 
 .card {
   position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
   height: var(--card-h);
   aspect-ratio: 5 / 7;
   width: auto;
+  padding: 6% 6.5%;
 
+  overflow: hidden;
   background: #fff;
   color: #14161c;
   border: 1px solid #e3e3ec;
@@ -16,6 +18,7 @@
     0 1px 2px rgba(0, 0, 0, 0.3),
     0 22px 48px -14px rgba(0, 0, 0, 0.7);
 
+  font-family: inherit;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -23,12 +26,6 @@
   cursor: grab;
   will-change: transform;
   transform: translateZ(0);
-}
-
-/* Even cards are red, odd cards black — reads as a card deck without inventing suits. */
-.card[data-parity="even"],
-.mini[data-parity="even"] {
-  color: #b3122b;
 }
 
 .card.is-dragging {
@@ -51,51 +48,150 @@
     0 26px 52px -16px rgba(0, 0, 0, 0.8);
 }
 
-/* Inner hairline frame, like the border printed on a real card. */
-.card::after {
-  content: "";
-  position: absolute;
-  inset: 2.6%;
-  border: 1px solid currentColor;
-  border-radius: 11px;
-  opacity: 0.12;
-  pointer-events: none;
-}
+/* --- Shared pieces ---------------------------------------------------- */
 
-.card__corner {
-  position: absolute;
-  font-size: clamp(1.05rem, 4.2dvh, 2rem);
+.card__kind {
+  font-size: clamp(0.5rem, 1.5dvh, 0.66rem);
   font-weight: 700;
-  font-variant-numeric: lining-nums tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8a90a0;
 }
 
-.card__corner--tl {
-  top: 5.5%;
-  left: 7%;
+.card__title {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.14;
+  color: #1b1f2a;
 }
 
-.card__corner--br {
-  bottom: 5.5%;
-  right: 7%;
-  transform: rotate(180deg);
+/* --- Time bonus ------------------------------------------------------- */
+
+.card--time {
+  padding: 0;
 }
 
-.card__number {
-  font-size: clamp(4.5rem, 26dvh, 13rem);
-  font-weight: 700;
-  font-variant-numeric: lining-nums tabular-nums;
-  letter-spacing: -0.04em;
+.card__band {
+  padding: 7% 7% 6%;
+  background: var(--band, #444);
+  color: #fff;
+  font-size: clamp(0.58rem, 1.8dvh, 0.78rem);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.card__main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6%;
+  padding: 6%;
+  text-align: center;
+}
+
+.card__points {
+  font-size: clamp(3rem, 16dvh, 7rem);
+  font-weight: 800;
   line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: var(--band, #14161c);
+  font-variant-numeric: tabular-nums;
+}
+
+.card__caption {
+  font-size: clamp(0.52rem, 1.5dvh, 0.7rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #7a8090;
+}
+
+/* --- Power up --------------------------------------------------------- */
+
+.card--power {
+  align-items: center;
+  justify-content: center;
+  gap: 7%;
+  text-align: center;
+}
+
+.card--power .card__title {
+  font-size: clamp(1rem, 4dvh, 1.8rem);
+}
+
+/* --- Curse ------------------------------------------------------------ */
+
+.card--curse {
+  gap: 2.5%;
+}
+
+.card--curse .card__title {
+  font-size: clamp(0.78rem, 2.5dvh, 1.1rem);
+}
+
+.card__effect {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #3d4353;
+}
+
+.card__cost {
+  padding-top: 2.5%;
+  border-top: 1px solid rgba(20, 22, 28, 0.14);
+  font-size: clamp(0.48rem, 1.4dvh, 0.62rem);
+  line-height: 1.3;
+  color: #4b5162;
+}
+
+.card__cost-label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.85em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9aa1b1;
+}
+
+.card__cost-text {
+  font-weight: 600;
+}
+
+/* --- Colour bands ----------------------------------------------------- */
+
+.card[data-color="Red"],
+.mini[data-color="Red"] {
+  --band: #c22f3f;
+}
+
+.card[data-color="Orange"],
+.mini[data-color="Orange"] {
+  --band: #d9741f;
+}
+
+.card[data-color="Yellow"],
+.mini[data-color="Yellow"] {
+  --band: #b8921f;
+}
+
+.card[data-color="Green"],
+.mini[data-color="Green"] {
+  --band: #2f9c5a;
+}
+
+.card[data-color="Blue"],
+.mini[data-color="Blue"] {
+  --band: #3363c8;
 }
 
 /* --- Cards in play ---------------------------------------------------- */
 
 /* An undecided card peeks out to the left of, and behind, the live card. */
 .card--peek {
-  padding: 0;
-  font: inherit;
   z-index: calc(20 - var(--depth, 1));
   transform: translateX(calc(var(--depth, 1) * var(--peek-offset) * -1))
     rotate(calc(var(--depth, 1) * -1.1deg));
@@ -127,14 +223,23 @@
   aspect-ratio: 5 / 7;
   padding: 0;
   background: #fff;
-  color: #14161c;
+  color: var(--band, #14161c);
   border: 1px solid #e3e3ec;
   border-radius: 9px;
   box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.8);
-  font-size: clamp(1rem, 3.6dvh, 1.5rem);
+  font-size: clamp(0.62rem, 2.4dvh, 0.95rem);
   font-weight: 700;
   font-variant-numeric: lining-nums tabular-nums;
   letter-spacing: -0.03em;
+}
+
+.mini[data-kind="power"] {
+  color: #3b4466;
+  font-size: clamp(0.5rem, 1.9dvh, 0.72rem);
+}
+
+.mini[data-kind="curse"] {
+  color: #4b3f7a;
 }
 
 /* A hand card that can be pressed to bring it forward. */

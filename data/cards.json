@@ -1,406 +1,874 @@
 {
-  "name": "hider-deck",
+  "name": "Hider deck",
   "count": 100,
   "cards": [
     {
-      "id": "1",
-      "label": "1"
-    },
-    {
-      "id": "2",
-      "label": "2"
-    },
-    {
-      "id": "3",
-      "label": "3"
-    },
-    {
-      "id": "4",
-      "label": "4"
-    },
-    {
-      "id": "5",
-      "label": "5"
-    },
-    {
-      "id": "6",
-      "label": "6"
-    },
-    {
-      "id": "7",
-      "label": "7"
-    },
-    {
-      "id": "8",
-      "label": "8"
-    },
-    {
-      "id": "9",
-      "label": "9"
-    },
-    {
-      "id": "10",
-      "label": "10"
-    },
-    {
-      "id": "11",
-      "label": "11"
-    },
-    {
-      "id": "12",
-      "label": "12"
-    },
-    {
-      "id": "13",
-      "label": "13"
-    },
-    {
-      "id": "14",
-      "label": "14"
-    },
-    {
-      "id": "15",
-      "label": "15"
-    },
-    {
-      "id": "16",
-      "label": "16"
-    },
-    {
-      "id": "17",
-      "label": "17"
-    },
-    {
-      "id": "18",
-      "label": "18"
-    },
-    {
-      "id": "19",
-      "label": "19"
-    },
-    {
-      "id": "20",
-      "label": "20"
-    },
-    {
-      "id": "21",
-      "label": "21"
-    },
-    {
-      "id": "22",
-      "label": "22"
-    },
-    {
-      "id": "23",
-      "label": "23"
-    },
-    {
-      "id": "24",
-      "label": "24"
-    },
-    {
-      "id": "25",
-      "label": "25"
-    },
-    {
-      "id": "26",
-      "label": "26"
-    },
-    {
-      "id": "27",
-      "label": "27"
-    },
-    {
-      "id": "28",
-      "label": "28"
-    },
-    {
-      "id": "29",
-      "label": "29"
-    },
-    {
-      "id": "30",
-      "label": "30"
-    },
-    {
-      "id": "31",
-      "label": "31"
-    },
-    {
-      "id": "32",
-      "label": "32"
-    },
-    {
-      "id": "33",
-      "label": "33"
-    },
-    {
-      "id": "34",
-      "label": "34"
-    },
-    {
-      "id": "35",
-      "label": "35"
-    },
-    {
-      "id": "36",
-      "label": "36"
-    },
-    {
-      "id": "37",
-      "label": "37"
-    },
-    {
-      "id": "38",
-      "label": "38"
-    },
-    {
-      "id": "39",
-      "label": "39"
-    },
-    {
-      "id": "40",
-      "label": "40"
-    },
-    {
-      "id": "41",
-      "label": "41"
-    },
-    {
-      "id": "42",
-      "label": "42"
-    },
-    {
-      "id": "43",
-      "label": "43"
-    },
-    {
-      "id": "44",
-      "label": "44"
-    },
-    {
-      "id": "45",
-      "label": "45"
-    },
-    {
-      "id": "46",
-      "label": "46"
-    },
-    {
-      "id": "47",
-      "label": "47"
-    },
-    {
-      "id": "48",
-      "label": "48"
-    },
-    {
-      "id": "49",
-      "label": "49"
-    },
-    {
-      "id": "50",
-      "label": "50"
-    },
-    {
-      "id": "51",
-      "label": "51"
-    },
-    {
-      "id": "52",
-      "label": "52"
-    },
-    {
-      "id": "53",
-      "label": "53"
-    },
-    {
-      "id": "54",
-      "label": "54"
-    },
-    {
-      "id": "55",
-      "label": "55"
-    },
-    {
-      "id": "56",
-      "label": "56"
-    },
-    {
-      "id": "57",
-      "label": "57"
-    },
-    {
-      "id": "58",
-      "label": "58"
-    },
-    {
-      "id": "59",
-      "label": "59"
-    },
-    {
-      "id": "60",
-      "label": "60"
-    },
-    {
-      "id": "61",
-      "label": "61"
-    },
-    {
-      "id": "62",
-      "label": "62"
-    },
-    {
-      "id": "63",
-      "label": "63"
-    },
-    {
-      "id": "64",
-      "label": "64"
-    },
-    {
-      "id": "65",
-      "label": "65"
-    },
-    {
-      "id": "66",
-      "label": "66"
-    },
-    {
-      "id": "67",
-      "label": "67"
-    },
-    {
-      "id": "68",
-      "label": "68"
-    },
-    {
-      "id": "69",
-      "label": "69"
-    },
-    {
-      "id": "70",
-      "label": "70"
-    },
-    {
-      "id": "71",
-      "label": "71"
-    },
-    {
-      "id": "72",
-      "label": "72"
-    },
-    {
-      "id": "73",
-      "label": "73"
-    },
-    {
-      "id": "74",
-      "label": "74"
-    },
-    {
-      "id": "75",
-      "label": "75"
-    },
-    {
-      "id": "76",
-      "label": "76"
-    },
-    {
-      "id": "77",
-      "label": "77"
-    },
-    {
-      "id": "78",
-      "label": "78"
-    },
-    {
-      "id": "79",
-      "label": "79"
-    },
-    {
-      "id": "80",
-      "label": "80"
-    },
-    {
-      "id": "81",
-      "label": "81"
-    },
-    {
-      "id": "82",
-      "label": "82"
-    },
-    {
-      "id": "83",
-      "label": "83"
-    },
-    {
-      "id": "84",
-      "label": "84"
-    },
-    {
-      "id": "85",
-      "label": "85"
-    },
-    {
-      "id": "86",
-      "label": "86"
-    },
-    {
-      "id": "87",
-      "label": "87"
-    },
-    {
-      "id": "88",
-      "label": "88"
-    },
-    {
-      "id": "89",
-      "label": "89"
-    },
-    {
-      "id": "90",
-      "label": "90"
-    },
-    {
-      "id": "91",
-      "label": "91"
-    },
-    {
-      "id": "92",
-      "label": "92"
-    },
-    {
-      "id": "93",
-      "label": "93"
-    },
-    {
-      "id": "94",
-      "label": "94"
-    },
-    {
-      "id": "95",
-      "label": "95"
-    },
-    {
-      "id": "96",
-      "label": "96"
-    },
-    {
-      "id": "97",
-      "label": "97"
-    },
-    {
-      "id": "98",
-      "label": "98"
-    },
-    {
-      "id": "99",
-      "label": "99"
-    },
-    {
-      "id": "100",
-      "label": "100"
+      "id": "t1",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t2",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t3",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t4",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t5",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t6",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t7",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t8",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t9",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t10",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t11",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t12",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t13",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t14",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t15",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t16",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t17",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t18",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t19",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t20",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t21",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t22",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t23",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t24",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t25",
+      "kind": "time",
+      "color": "Red",
+      "minutes": {
+        "small": 2,
+        "medium": 3,
+        "large": 5
+      }
+    },
+    {
+      "id": "t26",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t27",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t28",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t29",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t30",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t31",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t32",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t33",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t34",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t35",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t36",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t37",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t38",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t39",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t40",
+      "kind": "time",
+      "color": "Orange",
+      "minutes": {
+        "small": 4,
+        "medium": 6,
+        "large": 10
+      }
+    },
+    {
+      "id": "t41",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t42",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t43",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t44",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t45",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t46",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t47",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t48",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t49",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t50",
+      "kind": "time",
+      "color": "Yellow",
+      "minutes": {
+        "small": 6,
+        "medium": 9,
+        "large": 15
+      }
+    },
+    {
+      "id": "t51",
+      "kind": "time",
+      "color": "Green",
+      "minutes": {
+        "small": 8,
+        "medium": 12,
+        "large": 20
+      }
+    },
+    {
+      "id": "t52",
+      "kind": "time",
+      "color": "Green",
+      "minutes": {
+        "small": 8,
+        "medium": 12,
+        "large": 20
+      }
+    },
+    {
+      "id": "t53",
+      "kind": "time",
+      "color": "Green",
+      "minutes": {
+        "small": 8,
+        "medium": 12,
+        "large": 20
+      }
+    },
+    {
+      "id": "t54",
+      "kind": "time",
+      "color": "Blue",
+      "minutes": {
+        "small": 12,
+        "medium": 18,
+        "large": 30
+      }
+    },
+    {
+      "id": "t55",
+      "kind": "time",
+      "color": "Blue",
+      "minutes": {
+        "small": 12,
+        "medium": 18,
+        "large": 30
+      }
+    },
+    {
+      "id": "p1",
+      "kind": "power",
+      "name": "Randomize",
+      "short": "Rnd"
+    },
+    {
+      "id": "p2",
+      "kind": "power",
+      "name": "Randomize",
+      "short": "Rnd"
+    },
+    {
+      "id": "p3",
+      "kind": "power",
+      "name": "Randomize",
+      "short": "Rnd"
+    },
+    {
+      "id": "p4",
+      "kind": "power",
+      "name": "Randomize",
+      "short": "Rnd"
+    },
+    {
+      "id": "p5",
+      "kind": "power",
+      "name": "Veto",
+      "short": "Veto"
+    },
+    {
+      "id": "p6",
+      "kind": "power",
+      "name": "Veto",
+      "short": "Veto"
+    },
+    {
+      "id": "p7",
+      "kind": "power",
+      "name": "Veto",
+      "short": "Veto"
+    },
+    {
+      "id": "p8",
+      "kind": "power",
+      "name": "Veto",
+      "short": "Veto"
+    },
+    {
+      "id": "p9",
+      "kind": "power",
+      "name": "Duplicate",
+      "short": "Dup"
+    },
+    {
+      "id": "p10",
+      "kind": "power",
+      "name": "Duplicate",
+      "short": "Dup"
+    },
+    {
+      "id": "p11",
+      "kind": "power",
+      "name": "Move",
+      "short": "Move"
+    },
+    {
+      "id": "p12",
+      "kind": "power",
+      "name": "Discard 1 Draw 2",
+      "short": "D1D2"
+    },
+    {
+      "id": "p13",
+      "kind": "power",
+      "name": "Discard 1 Draw 2",
+      "short": "D1D2"
+    },
+    {
+      "id": "p14",
+      "kind": "power",
+      "name": "Discard 1 Draw 2",
+      "short": "D1D2"
+    },
+    {
+      "id": "p15",
+      "kind": "power",
+      "name": "Discard 1 Draw 2",
+      "short": "D1D2"
+    },
+    {
+      "id": "p16",
+      "kind": "power",
+      "name": "Discard 2 Draw 3",
+      "short": "D2D3"
+    },
+    {
+      "id": "p17",
+      "kind": "power",
+      "name": "Discard 2 Draw 3",
+      "short": "D2D3"
+    },
+    {
+      "id": "p18",
+      "kind": "power",
+      "name": "Discard 2 Draw 3",
+      "short": "D2D3"
+    },
+    {
+      "id": "p19",
+      "kind": "power",
+      "name": "Discard 2 Draw 3",
+      "short": "D2D3"
+    },
+    {
+      "id": "p20",
+      "kind": "power",
+      "name": "Draw 1 Expand 1",
+      "short": "D1E1"
+    },
+    {
+      "id": "p21",
+      "kind": "power",
+      "name": "Draw 1 Expand 1",
+      "short": "D1E1"
+    },
+    {
+      "id": "c1",
+      "kind": "curse",
+      "number": 1,
+      "title": "Curse of the Zoologist",
+      "effect": "Take a photo of a wild fish, bird, mammal, reptile, amphibian or bug. The seeker(s) must take a picture of a wild animal in the same category before asking another question.",
+      "cost": "A photo of an animal"
+    },
+    {
+      "id": "c2",
+      "kind": "curse",
+      "number": 2,
+      "title": "Curse of the Unguided Tourist",
+      "effect": "Send the seeker(s) an unzoomed Google Street View image from a street within 500ft (152m) of where they are now. The shot has to be parallel to the horizon and include at least one human-built structure other than a road. Without using the internet for research, they must find what you sent them in real life before they can use transportation or ask another question. They must send a picture to the hiders for verification.",
+      "cost": "Seeker(s) must be outside"
+    },
+    {
+      "id": "c3",
+      "kind": "curse",
+      "number": 3,
+      "title": "Curse of the Endless Tumble",
+      "effect": "Seekers must roll a die at least 100ft (30m) and have it land on a 5 or a 6 before they can ask another question. The die must roll the full distance, unaided, using only the momentum from the initial throw and gravity to travel the 100ft (30m). If the seekers accidentally hit someone with a die you are awarded a [S10, M20, L30] minute bonus.",
+      "cost": "Roll a die. If it's a 5 or 6 this card has no effect."
+    },
+    {
+      "id": "c4",
+      "kind": "curse",
+      "number": 4,
+      "title": "Curse of the Hidden Hangman",
+      "effect": "Before asking another question or boarding another form of transportation, seeker(s) must beat the hider(s) in a game of hangman.",
+      "cost": "Discard 2 cards"
+    },
+    {
+      "id": "c5",
+      "kind": "curse",
+      "number": 5,
+      "title": "Curse of the Overflowing Chalice",
+      "effect": "For the next three questions, you may draw (not keep) an additional card when drawing from the hider deck.",
+      "cost": "Discard a card"
+    },
+    {
+      "id": "c6",
+      "kind": "curse",
+      "number": 6,
+      "title": "Curse of the Mediocre Travel Agent",
+      "effect": "Choose any publicly-accessible place within [S0.25, M0.25, L0.50]mi [S0.40, M0.40, L0.50]km of the seeker(s) current location. They cannot currently be on transit. They must go there, and spend at least [S5, M5, L10] minutes there, before asking another question. They must send you at least three photos of them enjoying their vacation, and procure an object to bring you as a souvenir. If this souvenir is lost before they can get to you, you are awarded an extra [S30, M45, L60] minutes.",
+      "cost": ""
+    },
+    {
+      "id": "c7",
+      "kind": "curse",
+      "number": 7,
+      "title": "Curse of the Luxury Car",
+      "effect": "Take a photo of a car. The seekers must take a photo of a more expensive car before asking another question.",
+      "cost": "A photo of a car"
+    },
+    {
+      "id": "c8",
+      "kind": "curse",
+      "number": 8,
+      "title": "Curse of the U-Turn",
+      "effect": "Seeker(s) must disembark their current mode of transportation at the next station (as long as that station is served by another form of transit in the next [S0.5, M0.5, L1] hours).",
+      "cost": "Seekers must be heading the wrong way (their next station is further from you than they are)."
+    },
+    {
+      "id": "c9",
+      "kind": "curse",
+      "number": 9,
+      "title": "Curse of the Bridge Troll",
+      "effect": "The seekers must ask their next question from under a bridge.",
+      "cost": "Seekers must be at least [S1, M5, L30]mi [S0.3, M1.5, L9.1]km from you"
+    },
+    {
+      "id": "c10",
+      "kind": "curse",
+      "number": 10,
+      "title": "Curse of Water Weight",
+      "effect": "Seeker(s) must acquire and carry at least 2 liters of liquid per seeker for the rest of your run. They cannot ask another question until they have acquired the liquid. The water may be distributed between seekers as they see fit. If the liquid is lost or abandoned at any point the hider is awarded a [S30, M30, L60] minute bonus.",
+      "cost": "Seekers must be within 1,000ft (300 meters) of a body of water"
+    },
+    {
+      "id": "c11",
+      "kind": "curse",
+      "number": 11,
+      "title": "Curse of the Jammed Door",
+      "effect": "For the next [S0.5, M1, L3] hours, whenever the seeker(s) want to pass through a doorway into a building, business, train, or other vehicle they must first roll 2 dice. If they do not roll a 7 or higher they cannot enter that space (including through other doorways). Any given doorway can be reattempted after [S5, M10, L15] minutes.",
+      "cost": "Discard 2 cards"
+    },
+    {
+      "id": "c12",
+      "kind": "curse",
+      "number": 12,
+      "title": "Curse of the Cairn",
+      "effect": "You have one attempt to stack as many rocks on top of each other as you can in a freestanding tower. Each rock may only touch one other rock. Once you have added a rock to the tower it may not be removed. Before adding another rock, the tower must stand for at least 5 seconds. If at any point any rock other than the base rock touches the ground, your tower has fallen. Once your tower falls tell the seekers how many rocks high your tower was when it last stood for five seconds. The seekers must then construct a rock tower of the same number of rocks, under the same parameters, before asking another question. If their tower falls they must restart. The rocks must be found in nature and both teams must disperse the rocks after building.",
+      "cost": "Build a rock tower"
+    },
+    {
+      "id": "c13",
+      "kind": "curse",
+      "number": 13,
+      "title": "Curse of the Urban Explorer",
+      "effect": "For the rest of the run seekers cannot ask a question when they are on transit or in a train station.",
+      "cost": "Discard 2 cards"
+    },
+    {
+      "id": "c14",
+      "kind": "curse",
+      "number": 14,
+      "title": "Curse of the Impressionable Consumer",
+      "effect": "Seekers must enter and gain admission (if applicable) to a location or buy a product that they saw an advertisement for before asking another question. This advertisement must be found out in the world and must be at least 100ft (30m) from the product or location itself.",
+      "cost": "The seekers' next question is free"
+    },
+    {
+      "id": "c15",
+      "kind": "curse",
+      "number": 15,
+      "title": "Curse of the Egg Partner",
+      "effect": "Seeker(s) must acquire an egg before asking another question. This egg is now treated as an official team member of the seekers. If any team members are abandoned or killed (defined as a crack in the egg's case) before the end of your run you are awarded an extra [S30, M45, L60] minutes. This curse cannot be played during the endgame.",
+      "cost": "Discard two cards"
+    },
+    {
+      "id": "c16",
+      "kind": "curse",
+      "number": 16,
+      "title": "Curse of the Distant Cuisine",
+      "effect": "Find a restaurant within your zone that explicitly serves food from a specific foreign country. The seekers must visit a restaurant serving food from a country that is an equal or greater distance away before asking another question.",
+      "cost": "You must be at the restaurant"
+    },
+    {
+      "id": "c17",
+      "kind": "curse",
+      "number": 17,
+      "title": "Curse of the Right Turn",
+      "effect": "For the next [S20, M40, L60] minutes the seekers can only turn right at any street intersection. If at any point they find themselves in a dead end where they cannot continue forward or turn right for another 1,000ft (304m) they must do a full 180. A right turn is defined as a road at any angle that veers to the right of the seekers.",
+      "cost": "Discard a card"
+    },
+    {
+      "id": "c18",
+      "kind": "curse",
+      "number": 18,
+      "title": "Curse of the Labyrinth",
+      "effect": "Spend up to [S10, M20, L30] minutes drawing a solvable maze and send a photo of it to the seekers. You cannot use the internet to research maze designs. The seekers must solve the maze before asking another question.",
+      "cost": "Draw a maze"
+    },
+    {
+      "id": "c19",
+      "kind": "curse",
+      "number": 19,
+      "title": "Curse of the Bird Guide",
+      "effect": "You have one chance to film a bird for as long as possible. Up to [S5, M10, L15] minutes straight; if at any point the bird leaves the frame your timer is stopped. The seekers must then film a bird for the same amount of time or longer.",
+      "cost": "Film a bird"
+    },
+    {
+      "id": "c20",
+      "kind": "curse",
+      "number": 20,
+      "title": "Curse of Spotty Memory",
+      "effect": "For the rest of the run, one random category of questions will be disabled at all times. After this curse is played seeker(s) must roll a die to determine the category of questions to be disabled. The category remains disabled until the next question is asked, at which point a die is rolled again to choose a category. The same category can be disabled multiple times in a row.",
+      "cost": "Discard a time bonus card"
+    },
+    {
+      "id": "c21",
+      "kind": "curse",
+      "number": 21,
+      "title": "Curse of the Lemon Phylactery",
+      "effect": "Before asking another question the seeker(s) must each find a lemon and affix it to the outermost layer of their clothes or skin. If at any point one of these lemons is no longer touching a seeker you are awarded [S30, M45, L60] minutes. This curse cannot be played during the endgame.",
+      "cost": "Discard a power up card"
+    },
+    {
+      "id": "c22",
+      "kind": "curse",
+      "number": 22,
+      "title": "Curse of the Drained Brain",
+      "effect": "Choose three questions in different categories. The seekers cannot ask those questions for the rest of the run.",
+      "cost": "Discard your hand"
+    },
+    {
+      "id": "c23",
+      "kind": "curse",
+      "number": 23,
+      "title": "Curse of the Ransom Note",
+      "effect": "The next question that the seekers ask must be composed of words and letters cut out of any printed material. The question must be coherent and include at least 5 words.",
+      "cost": "Spell out \"Ransom Note\" as a ransom note (without using this card)"
+    },
+    {
+      "id": "c24",
+      "kind": "curse",
+      "number": 24,
+      "title": "Curse of the Gambler's Feet",
+      "effect": "For the next [S20, M40, L60] minutes seekers must roll a die before they take any steps in any direction; they may take that many steps before rolling again.",
+      "cost": "Roll a die; if it's an even number this curse has no effect"
     }
   ]
 }

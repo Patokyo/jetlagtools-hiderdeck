@@ -101,6 +101,32 @@ body {
   outline: none;
 }
 
+.hud__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.hud__icon:hover,
+.hud__icon:focus-visible {
+  color: var(--ink);
+  border-color: var(--accent);
+  outline: none;
+}
+
 /* --- Table ----------------------------------------------------------- */
 
 .table {
@@ -191,6 +217,114 @@ body {
   position: fixed;
   inset: auto 0 40% 0;
   text-align: center;
+  color: var(--muted);
+}
+
+/* --- Settings sheet --------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sheet {
+  width: min(92vw, 380px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #171b24;
+  color: var(--ink);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.9);
+}
+
+.sheet::backdrop {
+  background: rgba(6, 8, 12, 0.72);
+}
+
+.sheet__inner {
+  padding: 18px;
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sheet__head h2 {
+  font-size: 1rem;
+}
+
+.sheet__close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.sheet__close:hover,
+.sheet__close:focus-visible {
+  background: var(--panel);
+  color: var(--ink);
+  outline: none;
+}
+
+.sizes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.size {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.size:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(108, 123, 255, 0.12);
+}
+
+.size input {
+  accent-color: var(--accent);
+}
+
+.size span {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.size small {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.sheet__note {
+  margin-top: 14px;
+  font-size: 0.72rem;
+  line-height: 1.5;
   color: var(--muted);
 }
 
