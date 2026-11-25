@@ -244,6 +244,12 @@
   z-index: 30;
 }
 
+/* A card being played that is waiting on hand cards: parked half off the top
+   edge, out of the way of the hand and no longer swipable. */
+.card.is-playing {
+  cursor: default;
+}
+
 /* --- Hand ------------------------------------------------------------- */
 
 /* A kept card, parked in the strip at the bottom of the screen. */

@@ -385,6 +385,30 @@ function beginPick(el, message) {
   snapBack(el);
   renderTable();
   setHint(message);
+
+  // A played card that still needs cards picked is committed, not still being
+  // read: park it half off the top edge so the hand is what the player acts on.
+  // Keeping into a full hand is not a play, so that one stays in place.
+  if (app.pick && app.pick.mode !== "replace") liftCard(el);
+}
+
+/**
+ * Sit the card being played with its centre on the top edge of the screen, so
+ * half of it hangs out of view while the hand pays its cost. It can't be
+ * swiped from there: the pick has to be finished first.
+ */
+function liftCard(el) {
+  // Measure the resting place with the snap-back transition off, or the
+  // half-finished drag position is counted into the offset.
+  el.style.transition = "none";
+  el.style.transform = "none";
+  void el.offsetHeight;
+  const { top, height } = el.getBoundingClientRect();
+
+  el.style.transform = `translateY(${-(top + height / 2)}px)`;
+  el.style.transition = "transform 320ms cubic-bezier(.22,1.1,.36,1)";
+  el.style.pointerEvents = "none";
+  el.classList.add("is-playing");
 }
 
 /**
@@ -557,6 +581,8 @@ function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
 
 function snapBack(el) {
   setIntent(el, "");
+  el.classList.remove("is-playing");
+  el.style.pointerEvents = "";
   el.style.transition = "transform 320ms cubic-bezier(.22,1.1,.36,1)";
   el.style.transform = "translate(0, 0) rotate(0deg)";
   el.style.opacity = "";
