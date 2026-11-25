@@ -69,8 +69,11 @@ export function renderPeek(state, container, cardsById, onFocus) {
   });
 }
 
-/** Kept cards, shown as a strip at the bottom. These are not interactive. */
-export function renderHand(state, container, cardsById) {
+/**
+ * The hand strip at the bottom. With nothing in play these can be pressed to
+ * bring a card forward for reading; the card being read is marked.
+ */
+export function renderHand(state, container, cardsById, onFocus) {
   if (!container) return;
   container.replaceChildren();
 
@@ -79,18 +82,40 @@ export function renderHand(state, container, cardsById) {
     return;
   }
 
+  // Reading is only available when the table is idle, or while another hand
+  // card is already being read (pressing another one switches to it).
+  const interactive = state.active === null || state.review;
   container.hidden = false;
+
   for (const id of state.hand) {
     const card = cardsById.get(id);
     if (!card) continue;
 
-    const el = document.createElement("div");
-    el.className = "mini";
+    const el = document.createElement(interactive ? "button" : "div");
+    if (interactive) {
+      el.type = "button";
+      el.className = "mini mini--button";
+    } else {
+      el.className = "mini";
+    }
+
     el.dataset.id = id;
     el.dataset.parity = parityOf(card);
-    el.setAttribute("role", "img");
-    el.setAttribute("aria-label", `Card ${card.label} in hand`);
     el.textContent = card.label;
+
+    if (state.review && state.active === id) {
+      el.classList.add("is-reading");
+      el.setAttribute("aria-current", "true");
+    }
+
+    if (interactive) {
+      el.setAttribute("aria-label", `Read card ${card.label}`);
+      el.addEventListener("click", () => onFocus(id));
+    } else {
+      el.setAttribute("role", "img");
+      el.setAttribute("aria-label", `Card ${card.label} in hand`);
+    }
+
     container.append(el);
   }
 }

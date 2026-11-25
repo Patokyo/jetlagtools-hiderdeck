@@ -7,13 +7,14 @@ import {
   discardActive,
   discardAllInPlay,
   drawOver,
+  focusHand,
   focusPending,
   keepActive,
   sanitize,
-} from "./deck.js?v=3";
-import { trackDrag } from "./gestures.js?v=3";
-import { createCardEl, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=3";
-import { clear, load, save } from "./storage.js?v=3";
+} from "./deck.js?v=4";
+import { trackDrag } from "./gestures.js?v=4";
+import { createCardEl, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=4";
+import { clear, load, save } from "./storage.js?v=4";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -76,7 +77,7 @@ async function boot() {
 function renderTable() {
   renderHud(app.run, hudEls);
   renderPeek(app.run, stackEl, app.cards, focusCard);
-  renderHand(app.run, handEl, app.cards);
+  renderHand(app.run, handEl, app.cards, focusHandCard);
 }
 
 /* --- drawing --------------------------------------------------------- */
@@ -116,7 +117,9 @@ function bindTableDraw() {
 function tryDraw() {
   const result = drawOver(app.run);
   if (!result.cardId) {
-    if (result.reason === "full") {
+    if (result.reason === "review") {
+      showToast("Finish with this card first");
+    } else if (result.reason === "full") {
       showToast(`Hand is full (${app.run.handLimit}/${app.run.handLimit})`);
     } else if (result.reason === "stacked") {
       showToast(`${MAX_PENDING} cards in play — decide one first`);
@@ -134,12 +137,12 @@ function tryDraw() {
   app.cardEl?.remove();
   app.cardEl = null;
 
-  renderPeek(app.run, stackEl, app.cards, focusCard);
-  renderHand(app.run, handEl, app.cards);
+  renderTable();
   showCard(result.cardId);
 }
 
 function discardInPlay() {
+  const playingHandCard = app.run.review;
   const result = discardAllInPlay(app.run);
   if (result.count === 0) {
     showToast("Nothing in play");
@@ -154,7 +157,13 @@ function discardInPlay() {
 
   renderTable();
   updateIdleHint();
-  showToast(result.count === 1 ? "Discarded 1 card" : `Discarded ${result.count} cards`);
+  showToast(
+    playingHandCard
+      ? "Card played"
+      : result.count === 1
+        ? "Discarded 1 card"
+        : `Discarded ${result.count} cards`,
+  );
 }
 
 /* --- focusing a parked card ------------------------------------------ */
@@ -171,8 +180,28 @@ function focusCard(cardId) {
   app.cardEl?.remove();
   app.cardEl = null;
 
-  renderPeek(app.run, stackEl, app.cards, focusCard);
+  renderTable();
   // Coming forward is a change of focus, not a new draw: no drop from the top.
+  showCard(result.cardId, { animate: false });
+}
+
+/** Press a kept card to read it. It stays in hand and blocks drawing. */
+function focusHandCard(cardId) {
+  if (app.cardEl?.dataset.id === cardId) return;
+
+  const result = focusHand(app.run, cardId);
+  if (!result.cardId) {
+    if (result.reason === "busy") showToast("Decide the card in play first");
+    return;
+  }
+
+  app.run = result.state;
+  persist();
+
+  app.cardEl?.remove();
+  app.cardEl = null;
+
+  renderTable();
   showCard(result.cardId, { animate: false });
 }
 
@@ -202,7 +231,9 @@ function showCard(cardId, { animate = true } = {}) {
 
   bindCardDrag(el);
   renderHud(app.run, hudEls);
-  setHint("Drag up to discard · down to keep");
+  setHint(
+    app.run.review ? "Drag up to play · down puts it back" : "Drag up to discard · down to keep",
+  );
 }
 
 /* --- resolving ------------------------------------------------------- */
@@ -248,8 +279,7 @@ function resolveCard(el, action, x) {
 
   app.run = result.state;
   persist();
-  renderHud(app.run, hudEls);
-  renderHand(app.run, handEl, app.cards);
+  renderTable();
   setIntent(el, "");
   app.cardEl = null;
 
@@ -310,7 +340,9 @@ function updateIdleHint() {
   const { deck, hand, handLimit, pending } = app.run;
 
   if (pending.length) setHint("Tap a card · swipe up discards all");
+  else if (deck.length === 0 && hand.length) setHint("Tap a card below to read it");
   else if (deck.length === 0) setHint("The deck is empty");
-  else if (hand.length >= handLimit) setHint("Hand full — start a new run");
+  else if (hand.length >= handLimit) setHint("Hand full — tap a card below");
+  else if (hand.length) setHint("Swipe down to draw · tap a hand card");
   else setHint("Swipe down to draw");
 }

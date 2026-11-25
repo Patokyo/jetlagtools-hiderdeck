@@ -14,6 +14,7 @@ Static site. No backend, no build step, no framework. Deployed to GitHub Pages.
 | --- | --- |
 | Swipe down anywhere on the table | Draws the next card. If a card is already in play it drops slightly left and behind the new one |
 | Tap a card peeking out on the left | Refocuses it — straight to the front, no re-entry animation — and the card that was in focus takes its place behind |
+| Tap a card in your hand | Brings it forward to read. Drawing is blocked while it is forward: drag up to **play** it (hand → discard), drag down to put it back |
 | Swipe up anywhere on the table | Discards everything still undecided: the live card and the whole fan |
 | Drag the focused card | Repositions/rotates it freely while held |
 | Release high (swipe up past the threshold) | Card is **discarded** to the discard pile |
@@ -24,6 +25,7 @@ Rules the app has to enforce:
 
 - **Several cards in play** — you can draw before deciding. Each undecided card drops slightly left and behind the new one, so the stack stays readable; tapping a peeking card brings it forward. Five can be in play at once (`MAX_PENDING`) — beyond that the fan would have to stack cards on top of each other, out of reach.
 - **The hand is the strip at the bottom** — keeping a card sends it down there, so the hand is visible against the limit rather than only a counter. Undecided cards are not in the hand: they cost nothing until you keep one.
+- **Reading the hand** — pressing a kept card brings it forward full size without taking it out of the hand, so the count stays honest. While it is forward no card can be drawn; playing it moves it to the discard pile and putting it back leaves the hand unchanged.
 - **Swipe up clears the table** — an upward swipe on the table, rather than on a card, discards every undecided card at once. It's the bail-out for a draw you don't want to sort through; kept cards are never touched by it.
 - **Hand limit** — drawing is blocked once the hand is full. The card stays in the deck, and the focused card is not parked (a refused draw never costs you the card in play).
 - **Discard tracking** — discarded cards are removed from play and recorded, not recycled.
@@ -112,10 +114,11 @@ One versioned object, saved on every mutation (debounced ~200ms):
 
 ```js
 {
-  v: 2,                 // schema version, for future migrations
+  v: 3,                 // schema version, for future migrations
   seed: 123456789,      // shuffle seed; regenerate to reshuffle
   deck: ["013", "007", ...],   // remaining card ids, in draw order
   active: "013",               // the card in focus, or null
+  review: false,               // true when active is a kept card being read
   pending: ["007", "042"],     // drawn but undecided, oldest first; fanned behind the live card
   hand: ["042", ...],          // card ids kept
   discard: ["099", ...],       // card ids discarded
@@ -126,7 +129,7 @@ One versioned object, saved on every mutation (debounced ~200ms):
 
 If `v` doesn't match the current version, the JSON is corrupt, an id is unknown, or the same card appears twice, the save is rejected and a fresh run is created rather than half-loading a broken one.
 
-Hand limit defaults to **6** (`DEFAULT_HAND_LIMIT` in `js/deck.js`) and only counts kept cards. Drawing moves a card into `active`; swiping down again parks it in `pending` and draws the next one, so you can pull several cards before deciding. `pending` is rendered as the fan behind the live card, and the strip at the bottom renders `hand` — the two are separate: the hand is what you keep, the fan is what is still in play. Focusing a parked card swaps it with whatever is in `active`, so the fan never duplicates a card. A v1 save (no `pending`) is upgraded in place.
+Hand limit defaults to **6** (`DEFAULT_HAND_LIMIT` in `js/deck.js`) and only counts kept cards. Drawing moves a card into `active`; swiping down again parks it in `pending` and draws the next one, so you can pull several cards before deciding. `pending` is rendered as the fan behind the live card, and the strip at the bottom renders `hand` — the two are separate: the hand is what you keep, the fan is what is still in play. Focusing a parked card swaps it with whatever is in `active`, so the fan never duplicates a card. A reviewed card is the one case where a card sits in both `hand` and `active`, which is why `review` exists. v1 saves (no `pending`) and v2 saves (no `review`) are upgraded in place.
 
 ---
 

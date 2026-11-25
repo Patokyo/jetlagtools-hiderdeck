@@ -1,6 +1,6 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const DEFAULT_HAND_LIMIT = 6;
 export const MAX_PENDING = 5;
 
@@ -41,6 +41,7 @@ export function createRun(ids, { handLimit = DEFAULT_HAND_LIMIT } = {}) {
     handLimit,
     deck: shuffle(ids, seed),
     active: null,
+    review: false,
     pending: [],
     hand: [],
     discard: [],
@@ -50,6 +51,7 @@ export function createRun(ids, { handLimit = DEFAULT_HAND_LIMIT } = {}) {
 
 export function canDraw(state) {
   return (
+    !state.review &&
     state.deck.length > 0 &&
     state.hand.length < state.handLimit &&
     state.pending.length < MAX_PENDING
@@ -62,7 +64,7 @@ export function canKeep(state) {
 
 /** Move the top card of the deck into play. Returns why nothing was drawn. */
 export function drawCard(state) {
-  if (state.active !== null) return { state, cardId: null, reason: "busy" };
+  if (state.active !== null || state.review) return { state, cardId: null, reason: "busy" };
   if (state.deck.length === 0) return { state, cardId: null, reason: "empty" };
   if (state.hand.length >= state.handLimit) return { state, cardId: null, reason: "full" };
 
@@ -80,6 +82,7 @@ export function drawCard(state) {
  * so an empty deck or a full hand can't cost you the focused card.
  */
 export function drawOver(state) {
+  if (state.review) return { state, cardId: null, reason: "review" };
   if (state.deck.length === 0) return { state, cardId: null, reason: "empty" };
   if (state.hand.length >= state.handLimit) return { state, cardId: null, reason: "full" };
   if (state.pending.length >= MAX_PENDING) return { state, cardId: null, reason: "stacked" };
@@ -90,7 +93,7 @@ export function drawOver(state) {
 
 /** Send the card in play to the bottom strip without deciding it. */
 export function parkActive(state) {
-  if (state.active === null) return { state, cardId: null };
+  if (state.active === null || state.review) return { state, cardId: null };
   const cardId = state.active;
   return {
     state: { ...state, active: null, pending: [...state.pending, cardId], updatedAt: Date.now() },
@@ -108,13 +111,36 @@ export function focusPending(state, cardId) {
   else pending[index] = state.active;
 
   return {
-    state: { ...state, pending, active: cardId, updatedAt: Date.now() },
+    state: { ...state, pending, active: cardId, review: false, updatedAt: Date.now() },
     cardId,
+  };
+}
+
+/**
+ * Bring a kept card forward to read it. It stays in hand — so the hand count
+ * and strip do not change — and blocks drawing until it is put back or played.
+ */
+export function focusHand(state, cardId) {
+  if (!state.hand.includes(cardId)) return { state, cardId: null, reason: "missing" };
+  if (state.active !== null && !state.review) return { state, cardId: null, reason: "busy" };
+
+  return {
+    state: { ...state, active: cardId, review: true, updatedAt: Date.now() },
+    cardId,
+    reason: null,
   };
 }
 
 /** The card in play is stored in hand. */
 export function keepActive(state) {
+  // A reviewed card already lives in hand: keeping it just puts it back.
+  if (state.review) {
+    return {
+      state: { ...state, active: null, review: false, updatedAt: Date.now() },
+      cardId: state.active,
+    };
+  }
+
   if (!canKeep(state)) return { state, cardId: null };
   const cardId = state.active;
   return {
@@ -131,11 +157,14 @@ export function discardAllInPlay(state) {
   const ids = [...(state.active === null ? [] : [state.active]), ...state.pending];
   if (ids.length === 0) return { state, count: 0 };
 
+  const leaving = new Set(ids);
   return {
     state: {
       ...state,
       active: null,
+      review: false,
       pending: [],
+      hand: state.hand.filter((id) => !leaving.has(id)),
       discard: [...state.discard, ...ids],
       updatedAt: Date.now(),
     },
@@ -147,6 +176,22 @@ export function discardAllInPlay(state) {
 export function discardActive(state) {
   if (state.active === null) return { state, cardId: null };
   const cardId = state.active;
+
+  // Playing a card from hand: it leaves the hand and joins the discard pile.
+  if (state.review) {
+    return {
+      state: {
+        ...state,
+        active: null,
+        review: false,
+        hand: state.hand.filter((id) => id !== cardId),
+        discard: [...state.discard, cardId],
+        updatedAt: Date.now(),
+      },
+      cardId,
+    };
+  }
+
   return {
     state: { ...state, active: null, discard: [...state.discard, cardId], updatedAt: Date.now() },
     cardId,
@@ -154,21 +199,23 @@ export function discardActive(state) {
 }
 
 export function deckSize(state) {
-  return state.deck.length + state.pending.length + (state.active ? 1 : 0);
+  return state.deck.length + state.pending.length + (state.active && !state.review ? 1 : 0);
 }
 
 /**
  * Validate a persisted run before trusting it: right schema, known card ids,
  * no card duplicated across deck/pending/hand/discard.
  *
- * v1 had no pending list; those saves are upgraded rather than thrown away.
+ * v1 had no pending list and v2 no review flag; those saves are upgraded
+ * rather than thrown away.
  */
 export function sanitize(raw, validIds) {
   if (!raw || typeof raw !== "object") return null;
-  if (raw.v !== 1 && raw.v !== SCHEMA_VERSION) return null;
+  if (raw.v !== 1 && raw.v !== 2 && raw.v !== SCHEMA_VERSION) return null;
 
   const { deck, hand, discard, active, handLimit } = raw;
   const pending = raw.v === 1 ? [] : raw.pending;
+  const review = raw.v >= 3 ? raw.review === true : false;
   if (!Array.isArray(deck) || !Array.isArray(hand) || !Array.isArray(discard)) return null;
   if (!Array.isArray(pending)) return null;
   if (typeof handLimit !== "number" || !Number.isFinite(handLimit) || handLimit < 1) return null;
@@ -178,14 +225,14 @@ export function sanitize(raw, validIds) {
     return null;
   if (active !== null && !isId(active)) return null;
 
-  const seen = new Set([
-    ...deck,
-    ...hand,
-    ...discard,
-    ...pending,
-    ...(active ? [active] : []),
-  ]);
-  if (seen.size !== deck.length + hand.length + discard.length + pending.length + (active ? 1 : 0))
+  // A reviewed card is in hand *and* shown in play. Any other card in play must
+  // not also be in hand.
+  if (review && (active === null || !hand.includes(active))) return null;
+  if (!review && active !== null && hand.includes(active)) return null;
+
+  const inPlay = active !== null && !review ? [active] : [];
+  const seen = new Set([...deck, ...hand, ...discard, ...pending, ...inPlay]);
+  if (seen.size !== deck.length + hand.length + discard.length + pending.length + inPlay.length)
     return null;
 
   return {
@@ -197,6 +244,7 @@ export function sanitize(raw, validIds) {
     hand,
     discard,
     active: active ?? null,
+    review,
     updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : Date.now(),
   };
 }
