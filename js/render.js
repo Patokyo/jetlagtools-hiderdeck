@@ -1,6 +1,14 @@
 // DOM rendering. Card faces, the fan behind the live card, the hand strip.
 
-import { formatEffect, fullLabel, minutesFor, shortLabel } from "./cards.js?v=5";
+import {
+  clockFraction,
+  curseName,
+  formatEffect,
+  fullLabel,
+  handMinutes,
+  minutesFor,
+  shortLabel,
+} from "./cards.js?v=6";
 
 let toastTimer = null;
 
@@ -9,6 +17,88 @@ function node(tag, className, text) {
   if (className) el.className = className;
   if (text !== undefined) el.textContent = text;
   return el;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// Filled 24x24 glyphs, one per power up. Keyed by the card name in cards.json.
+const POWER_ICONS = {
+  Randomize:
+    '<path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>',
+  Veto:
+    '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9A7.9 7.9 0 0 1 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1A7.9 7.9 0 0 1 20 12c0 4.42-3.58 8-8 8z"/>',
+  Duplicate:
+    '<path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/>',
+  Move:
+    '<path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/>',
+  "Discard 1 Draw 2":
+    '<path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3 5 6.99h3V14h2V6.99h3L9 3z"/>',
+  "Discard 2 Draw 3":
+    '<path d="M12 6v3l4-4-4-4v3a8 8 0 0 0-8 8c0 1.57.46 3.03 1.24 4.26L6.7 14.8A5.87 5.87 0 0 1 6 12a6 6 0 0 1 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8a6 6 0 0 1-6 6v-3l-4 4 4 4v-3a8 8 0 0 0 8-8c0-1.57-.46-3.03-1.24-4.26z"/>',
+  "Draw 1 Expand 1":
+    '<path d="M21 11V3h-8l3.29 3.29-10 10L3 13v8h8l-3.29-3.29 10-10L21 11z"/>',
+};
+const POWER_FALLBACK =
+  '<path d="M12 2 9.2 8.6 2 9.4l5.4 4.9L5.8 22 12 18l6.2 4-1.6-7.7L22 9.4l-7.2-.8L12 2z"/>';
+
+function svgEl(className, viewBox = "0 0 24 24") {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", viewBox);
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("class", className);
+  return svg;
+}
+
+function svgNode(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, String(value));
+  return el;
+}
+
+function powerIcon(name, className) {
+  const svg = svgEl(className);
+  svg.setAttribute("fill", "currentColor");
+  svg.innerHTML = POWER_ICONS[name] ?? POWER_FALLBACK;
+  return svg;
+}
+
+/**
+ * A clock face whose filled wedge grows with the time bonus, scaled so the best
+ * card for the current game size fills it. 25 of 30 minutes is most of a clock.
+ */
+function clockIcon(card, size) {
+  const fraction = clockFraction(card, size);
+  const svg = svgEl("card__clock", "0 0 100 100");
+  svg.setAttribute("fill", "currentColor");
+
+  svg.append(
+    svgNode("circle", {
+      cx: 50,
+      cy: 50,
+      r: 44,
+      fill: "none",
+      stroke: "currentColor",
+      "stroke-opacity": 0.16,
+      "stroke-width": 9,
+    }),
+  );
+
+  if (fraction >= 0.999) {
+    svg.append(svgNode("circle", { cx: 50, cy: 50, r: 44 }));
+  } else if (fraction > 0) {
+    const angle = fraction * Math.PI * 2;
+    const x = (50 + 44 * Math.sin(angle)).toFixed(2);
+    const y = (50 - 44 * Math.cos(angle)).toFixed(2);
+    const largeArc = fraction > 0.5 ? 1 : 0;
+    svg.append(svgNode("path", { d: `M50 50 L50 6 A44 44 0 ${largeArc} 1 ${x} ${y} Z` }));
+  }
+
+  svg.append(
+    svgNode("circle", { cx: 50, cy: 50, r: 44, fill: "none", stroke: "currentColor", "stroke-width": 3 }),
+    svgNode("circle", { cx: 50, cy: 50, r: 5, fill: "#fff", stroke: "currentColor", "stroke-width": 2 }),
+  );
+  return svg;
 }
 
 function fillCard(el, card, size) {
@@ -21,6 +111,7 @@ function fillCard(el, card, size) {
 
     const main = node("div", "card__main");
     main.append(
+      clockIcon(card, size),
       node("div", "card__points", `${minutesFor(card, size)}m`),
       node("div", "card__caption", "Time bonus"),
     );
@@ -29,7 +120,11 @@ function fillCard(el, card, size) {
   }
 
   if (card.kind === "power") {
-    el.append(node("span", "card__kind", "Power up"), node("h2", "card__title", card.name));
+    el.append(
+      powerIcon(card.name, "card__icon"),
+      node("span", "card__kind", "Power up"),
+      node("h2", "card__title", card.name),
+    );
     return el;
   }
 
@@ -110,6 +205,23 @@ export function renderPeek(state, container, cardsById, onFocus, size) {
  * The hand strip at the bottom. With nothing in play these can be pressed to
  * bring a card forward for reading; the card being read is marked.
  */
+/** The little face of a kept card: minutes, an icon plus name, or a curse name. */
+function fillMini(el, card, size) {
+  if (card.kind === "time") {
+    el.append(node("span", "mini__minutes", `${minutesFor(card, size)}m`));
+  } else if (card.kind === "power") {
+    el.append(
+      powerIcon(card.name, "mini__icon"),
+      node("span", "mini__name", shortLabel(card, size)),
+    );
+  } else {
+    el.append(
+      node("span", "mini__tag", `#${card.number}`),
+      node("span", "mini__name", curseName(card.title)),
+    );
+  }
+}
+
 export function renderHand(state, container, cardsById, onFocus, size) {
   if (!container) return;
   container.replaceChildren();
@@ -139,7 +251,7 @@ export function renderHand(state, container, cardsById, onFocus, size) {
     el.dataset.id = id;
     el.dataset.kind = card.kind;
     if (card.kind === "time") el.dataset.color = card.color;
-    el.textContent = shortLabel(card, size);
+    fillMini(el, card, size);
 
     if (state.review && state.active === id) {
       el.classList.add("is-reading");
@@ -158,9 +270,15 @@ export function renderHand(state, container, cardsById, onFocus, size) {
   }
 }
 
-export function renderHud(state, els) {
+export function renderHud(state, els, cardsById, size) {
   els.deck.textContent = String(state.deck.length);
   els.hand.textContent = `${state.hand.length}/${state.handLimit}`;
+
+  const minutes = handMinutes(state.hand, cardsById, size);
+  if (els.time) {
+    els.time.textContent = `${minutes}m`;
+    els.time.setAttribute("aria-label", `Total time bonus in hand: ${minutes} minutes`);
+  }
 }
 
 export function showToast(message) {

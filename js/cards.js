@@ -4,6 +4,9 @@ export const SIZES = ["small", "medium", "large"];
 
 export const SIZE_LABELS = { small: "Small", medium: "Medium", large: "Large" };
 
+/** Best time bonus available at each game size. The clock face is scaled to it. */
+export const MAX_MINUTES = { small: 12, medium: 18, large: 30 };
+
 /**
  * Curse text carries per-size ranges, e.g. "[S10, M20, L30]" or "[S5 M10 L15]"
  * (one card is missing its L marker). Every match is replaced with the value
@@ -14,6 +17,29 @@ const RANGE = /\[\s*S\s*([\d.]+)\s*[, ]\s*M\s*([\d.]+)\s*[, ]\s*(?:L\s*)?([\d.]+
 export function minutesFor(card, size) {
   if (!card.minutes) return 0;
   return card.minutes[size] ?? card.minutes.medium;
+}
+
+/** How full the clock on a time card is, from 0 to 1. */
+export function clockFraction(card, size) {
+  const max = MAX_MINUTES[size] ?? MAX_MINUTES.medium;
+  return Math.min(1, Math.max(0, minutesFor(card, size) / max));
+}
+
+/** "Curse of the Mediocre Travel Agent" -> "Mediocre Travel Agent". */
+export function curseName(title) {
+  return String(title)
+    .replace(/^curse of the\s+/i, "")
+    .replace(/^curse of\s+/i, "");
+}
+
+/** Total minutes of the time bonus cards in hand. */
+export function handMinutes(hand, cardsById, size) {
+  let total = 0;
+  for (const id of hand) {
+    const card = cardsById.get(id);
+    if (card && card.kind === "time") total += minutesFor(card, size);
+  }
+  return total;
 }
 
 export function formatEffect(text, size) {
@@ -29,7 +55,7 @@ export function formatEffect(text, size) {
 export function shortLabel(card, size) {
   if (card.kind === "time") return `${minutesFor(card, size)}m`;
   if (card.kind === "power") return card.short ?? card.name;
-  return `#${card.number}`;
+  return curseName(card.title);
 }
 
 /** Long description for screen readers and aria labels. */

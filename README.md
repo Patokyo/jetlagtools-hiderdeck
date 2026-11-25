@@ -29,7 +29,7 @@ Rules the app has to enforce:
 - **Reading the hand** — pressing a kept card brings it forward full size without taking it out of the hand, so the count stays honest. While it is forward no card can be drawn; playing it moves it to the discard pile and putting it back leaves the hand unchanged.
 - **Swipe up clears the table** — an upward swipe on the table, rather than on a card, discards every undecided card at once. It's the bail-out for a draw you don't want to sort through; kept cards are never touched by it.
 - **Hand limit** — drawing is blocked once the hand is full. The card stays in the deck, and the focused card is not parked (a refused draw never costs you the card in play).
-- **Discard tracking** — discarded cards are removed from play and recorded, not recycled. The count is not shown in the HUD, which keeps only deck and hand.
+- **Discard tracking** — discarded cards are removed from play and recorded, not recycled. The count is not shown in the HUD, which keeps only deck, hand and the total time bonus currently kept in hand.
 - **Persistence** — deck order, hand, discard pile and hand limit are cached in `localStorage` so a refresh (or a closed tab) resumes exactly where the player left off.
 
 ---
@@ -43,6 +43,13 @@ Rules the app has to enforce:
 | Time bonus | 55 | Red ×25 (2/3/5 min), Orange ×15 (4/6/10), Yellow ×10 (6/9/15), Green ×3 (8/12/20), Blue ×2 (12/18/30) |
 | Power up | 21 | Randomize ×4, Veto ×4, Duplicate ×2, Move ×1, Discard 1 Draw 2 ×4, Discard 2 Draw 3 ×4, Draw 1 Expand 1 ×2 |
 | Curse | 24 | Numbered 1–24, each with its casting cost |
+
+### Card faces
+
+- **Time bonus** — a colour band, a clock face and the minutes. The clock's filled wedge scales to the best bonus for the chosen game size, so 25 of 30 minutes is most of a clock and 2 of 12 is a sliver.
+- **Power up** — an icon for the power (shuffle for Randomize, a crossed circle for Veto, and so on) above the name.
+- **Curse** — a purple stripe across the top edge, so curses are obvious in the fan, plus the number, title, effect and casting cost.
+- **Hand strip** — each kept card is a miniature: minutes for a time bonus, the icon and short name for a power up, and for a curse the number and the name without its "Curse of the" prefix.
 
 The three time-bonus values and the `[S…, M…, L…]` ranges inside curse text are the small, medium and large game values. Choosing a size in settings re-renders every card on the table with the values for that size — including cards already in hand — without touching the run state, so the deck, hand and discard pile survive a size change.
 

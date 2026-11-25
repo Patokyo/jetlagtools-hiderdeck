@@ -91,8 +91,17 @@
   text-align: center;
 }
 
+/* The clock fills up with the size of the bonus: the best card is a full face. */
+.card__clock {
+  display: block;
+  width: min(36%, 104px);
+  height: auto;
+  aspect-ratio: 1;
+  color: var(--band, #14161c);
+}
+
 .card__points {
-  font-size: clamp(3rem, 16dvh, 7rem);
+  font-size: clamp(2.6rem, 14dvh, 6rem);
   font-weight: 800;
   line-height: 0.9;
   letter-spacing: -0.05em;
@@ -120,10 +129,28 @@
   font-size: clamp(1rem, 4dvh, 1.8rem);
 }
 
+.card__icon {
+  display: block;
+  width: min(30%, 92px);
+  height: auto;
+  aspect-ratio: 1;
+  color: #3b4466;
+}
+
 /* --- Curse ------------------------------------------------------------ */
 
 .card--curse {
   gap: 2.5%;
+  padding-top: calc(6.5% + 8px);
+}
+
+/* A purple stripe along the top edge, so curses are picked out in the fan. */
+.card--curse::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 8px;
+  background: var(--curse, #6b4bd6);
 }
 
 .card--curse .card__title {
@@ -216,12 +243,17 @@
 
 /* A kept card, parked in the strip at the bottom of the screen. */
 .mini {
+  position: relative;
   flex: 0 0 auto;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   height: var(--mini-h);
   aspect-ratio: 5 / 7;
-  padding: 0;
+  padding: 6px 4px 5px;
+  overflow: hidden;
   background: #fff;
   color: var(--band, #14161c);
   border: 1px solid #e3e3ec;
@@ -233,13 +265,57 @@
   letter-spacing: -0.03em;
 }
 
+.mini__minutes {
+  font-size: clamp(0.66rem, 2.4dvh, 0.95rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* Curse names are long, so they get the whole card and up to three lines. */
+.mini__name {
+  width: 100%;
+  overflow: hidden;
+  font-size: clamp(0.42rem, 1.45dvh, 0.56rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-align: center;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.mini__tag {
+  font-size: clamp(0.4rem, 1.3dvh, 0.5rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #8a90a0;
+}
+
+.mini__icon {
+  width: min(46%, 20px);
+  height: auto;
+  aspect-ratio: 1;
+}
+
 .mini[data-kind="power"] {
   color: #3b4466;
-  font-size: clamp(0.5rem, 1.9dvh, 0.72rem);
+  padding-top: 5px;
 }
 
 .mini[data-kind="curse"] {
-  color: #4b3f7a;
+  color: #4a3a86;
+  padding-top: 9px;
+}
+
+.mini[data-kind="curse"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: var(--curse, #6b4bd6);
 }
 
 /* A hand card that can be pressed to bring it forward. */

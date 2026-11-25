@@ -11,11 +11,11 @@ import {
   focusPending,
   keepActive,
   sanitize,
-} from "./deck.js?v=5";
-import { SIZES } from "./cards.js?v=5";
-import { trackDrag } from "./gestures.js?v=5";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=5";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=5";
+} from "./deck.js?v=6";
+import { SIZES } from "./cards.js?v=6";
+import { trackDrag } from "./gestures.js?v=6";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=6";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=6";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -35,6 +35,7 @@ const sizeInputs = [...document.querySelectorAll('input[name="size"]')];
 const hudEls = {
   deck: document.getElementById("deck-count"),
   hand: document.getElementById("hand-count"),
+  time: document.getElementById("time-total"),
 };
 
 const app = {
@@ -83,7 +84,7 @@ async function boot() {
 
 /** HUD, the fan behind the live card, and the hand strip. */
 function renderTable() {
-  renderHud(app.run, hudEls);
+  renderHud(app.run, hudEls, app.cards, app.size);
   renderPeek(app.run, stackEl, app.cards, focusCard, app.size);
   renderHand(app.run, handEl, app.cards, focusHandCard, app.size);
 }
@@ -239,7 +240,7 @@ function showCard(cardId, { animate = true } = {}) {
   }
 
   bindCardDrag(el);
-  renderHud(app.run, hudEls);
+  renderHud(app.run, hudEls, app.cards, app.size);
   setHint(
     app.run.review ? "Drag up to play · down puts it back" : "Drag up to discard · down to keep",
   );

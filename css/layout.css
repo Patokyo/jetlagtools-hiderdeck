@@ -7,19 +7,20 @@
   --accent: #6c7bff;
   --keep: #3fbf85;
   --discard: #ff6b6b;
+  --curse: #6b4bd6;
 
   /* Room is reserved for the hand strip whether or not it is showing, so
      keeping a card never resizes the card in play. The width cap leaves room
      for the fan of parked cards stepping out to the left. */
   --card-h: min(calc(100vh - 216px), calc(80vw * 7 / 5), 640px);
-  --mini-h: clamp(56px, 9dvh, 76px);
+  --mini-h: clamp(62px, 10dvh, 84px);
   --peek-offset: 14px;
 }
 
 @supports (height: 100dvh) {
   :root {
     --card-h: min(calc(100dvh - 216px), calc(80vw * 7 / 5), 640px);
-    --mini-h: clamp(56px, 9dvh, 76px);
+    --mini-h: clamp(62px, 10dvh, 84px);
     --peek-offset: 14px;
   }
 }
@@ -47,42 +48,44 @@ body {
 
 .hud {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: max(10px, env(safe-area-inset-top)) 16px 6px;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) 12px 6px;
 }
 
 .hud__stats {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .hud__stat {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 5px;
+  padding: 5px 9px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--panel);
 }
 
 .hud__stat dt {
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .hud__stat dd {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .hud__reset {
-  padding: 7px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: transparent;
@@ -105,6 +108,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .hud__icon {
