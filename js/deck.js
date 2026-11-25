@@ -1,6 +1,6 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-import { baseId } from "./cards.js?v=24";
+import { baseId } from "./cards.js?v=25";
 
 export const SCHEMA_VERSION = 5;
 export const DEFAULT_HAND_LIMIT = 6;

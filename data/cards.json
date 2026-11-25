@@ -557,56 +557,56 @@
       "kind": "power",
       "name": "Randomise",
       "short": "Rnd",
-      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question they must answer."
+      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question you must answer."
     },
     {
       "id": "p2",
       "kind": "power",
       "name": "Randomise",
       "short": "Rnd",
-      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question they must answer."
+      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question you must answer."
     },
     {
       "id": "p3",
       "kind": "power",
       "name": "Randomise",
       "short": "Rnd",
-      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question they must answer."
+      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question you must answer."
     },
     {
       "id": "p4",
       "kind": "power",
       "name": "Randomise",
       "short": "Rnd",
-      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question they must answer."
+      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question you must answer."
     },
     {
       "id": "p5",
       "kind": "power",
       "name": "Veto",
       "short": "Veto",
-      "description": "Play instead of answering: the seekers get no answer at all, and you draw no cards."
+      "description": "Play instead of answering: the seekers get no answer at all, you draw no cards, and the seekers cannot ask that same question again."
     },
     {
       "id": "p6",
       "kind": "power",
       "name": "Veto",
       "short": "Veto",
-      "description": "Play instead of answering: the seekers get no answer at all, and you draw no cards."
+      "description": "Play instead of answering: the seekers get no answer at all, you draw no cards, and the seekers cannot ask that same question again."
     },
     {
       "id": "p7",
       "kind": "power",
       "name": "Veto",
       "short": "Veto",
-      "description": "Play instead of answering: the seekers get no answer at all, and you draw no cards."
+      "description": "Play instead of answering: the seekers get no answer at all, you draw no cards, and the seekers cannot ask that same question again."
     },
     {
       "id": "p8",
       "kind": "power",
       "name": "Veto",
       "short": "Veto",
-      "description": "Play instead of answering: the seekers get no answer at all, and you draw no cards."
+      "description": "Play instead of answering: the seekers get no answer at all, you draw no cards, and the seekers cannot ask that same question again."
     },
     {
       "id": "p9",

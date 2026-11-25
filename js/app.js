@@ -15,7 +15,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=24";
+} from "./deck.js?v=25";
 import {
   POWER_PLAY,
   SIZES,
@@ -23,10 +23,10 @@ import {
   cardOf,
   curseCost,
   curseText,
-} from "./cards.js?v=24";
-import { trackDrag } from "./gestures.js?v=24";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=24";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=24";
+} from "./cards.js?v=25";
+import { trackDrag } from "./gestures.js?v=25";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=25";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=25";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -563,6 +563,38 @@ function flyAway(el, action, x) {
   setTimeout(() => el.remove(), EXIT_MS + 120);
 }
 
+const FLY_IN_MS = 480;
+const FLY_IN_STAGGER = 90;
+
+/**
+ * Cards drawn straight into the hand come in from the top of the screen, so a
+ * power up that draws is followed into the hand instead of the new cards just
+ * turning up there. Runs on the freshly rendered minis, after the redraw.
+ */
+function flyInToHand(ids) {
+  if (!handEl || ids.length === 0) return;
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+  ids.forEach((id, index) => {
+    const el = handEl.querySelector(`.mini[data-id="${CSS.escape(id)}"]`);
+    if (!el || typeof el.animate !== "function") return;
+
+    el.animate(
+      [
+        { transform: "translateY(-115vh) scale(0.9)", opacity: 0 },
+        { transform: "translateY(-45vh) scale(0.94)", opacity: 1, offset: 0.55 },
+        { transform: "none", opacity: 1 },
+      ],
+      {
+        duration: FLY_IN_MS,
+        delay: index * FLY_IN_STAGGER,
+        easing: "cubic-bezier(.22,.9,.28,1)",
+        fill: "backwards",
+      },
+    );
+  });
+}
+
 /* --- power ups and curse costs --------------------------------------- */
 
 /**
@@ -793,6 +825,7 @@ function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
   app.cardEl = null;
   flyAway(el, "discard", x);
   updateIdleHint();
+  flyInToHand(result.drawn);
 
   const parts = [];
   if (discards.length) parts.push(`Discarded ${discards.length}`);
