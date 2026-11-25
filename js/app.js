@@ -10,10 +10,10 @@ import {
   focusPending,
   keepActive,
   sanitize,
-} from "./deck.js";
-import { trackDrag } from "./gestures.js";
-import { createCardEl, renderHand, renderHud, renderPeek, showToast } from "./render.js";
-import { clear, load, save } from "./storage.js";
+} from "./deck.js?v=3";
+import { trackDrag } from "./gestures.js?v=3";
+import { createCardEl, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=3";
+import { clear, load, save } from "./storage.js?v=3";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
