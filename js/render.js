@@ -52,6 +52,7 @@ export function createPeekEl(card, depth) {
  * by this module's caller, so peeks are rebuilt in place.
  */
 export function renderPeek(state, container, cardsById, onFocus) {
+  if (!container) return;
   for (const el of container.querySelectorAll(".card--peek")) el.remove();
 
   state.pending.forEach((id, index) => {
@@ -67,6 +68,7 @@ export function renderPeek(state, container, cardsById, onFocus) {
 
 /** Kept cards, shown as a strip at the bottom. These are not interactive. */
 export function renderHand(state, container, cardsById) {
+  if (!container) return;
   container.replaceChildren();
 
   if (state.hand.length === 0) {

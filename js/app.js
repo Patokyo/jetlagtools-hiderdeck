@@ -20,7 +20,9 @@ const TAP_SLOP = 12; // below this the drag counts as a tap, not a swipe
 const EXIT_MS = 320;
 
 const stage = document.getElementById("stage");
-const stackEl = document.getElementById("stack");
+// Falls back to the older containers so a browser holding a cached copy of
+// index.html still gets a working table instead of a silently dead one.
+const stackEl = document.getElementById("stack") ?? document.getElementById("slot");
 const handEl = document.getElementById("hand");
 const hint = document.getElementById("hint");
 const resetButton = document.getElementById("reset");
@@ -36,7 +38,10 @@ const app = {
   cardEl: null,
 };
 
-boot();
+boot().catch((err) => {
+  console.error("[deck] failed to start", err);
+  showToast("Could not start the deck");
+});
 
 async function boot() {
   resetButton.addEventListener("click", newRun);
@@ -56,10 +61,11 @@ async function boot() {
 
   const stored = sanitize(load(), new Set(app.cards.keys()));
   app.run = stored ?? createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
+  // Wire input before rendering: a rendering problem must never leave the
+  // table unresponsive, which is what a stale index.html used to cause.
+  bindTableDraw();
   renderTable();
   save(app.run);
-
-  bindTableDraw();
 
   if (app.run.active) showCard(app.run.active, { animate: false });
   else updateIdleHint();
