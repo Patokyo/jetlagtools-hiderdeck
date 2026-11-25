@@ -555,149 +555,149 @@
     {
       "id": "p1",
       "kind": "power",
-      "name": "Randomize",
+      "name": "Randomise",
       "short": "Rnd",
-      "description": "Play instead of answering: the seekers pick another unasked question in the same category."
+      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question they must answer."
     },
     {
       "id": "p2",
       "kind": "power",
-      "name": "Randomize",
+      "name": "Randomise",
       "short": "Rnd",
-      "description": "Play instead of answering: the seekers pick another unasked question in the same category."
+      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question they must answer."
     },
     {
       "id": "p3",
       "kind": "power",
-      "name": "Randomize",
+      "name": "Randomise",
       "short": "Rnd",
-      "description": "Play instead of answering: the seekers pick another unasked question in the same category."
+      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question they must answer."
     },
     {
       "id": "p4",
       "kind": "power",
-      "name": "Randomize",
+      "name": "Randomise",
       "short": "Rnd",
-      "description": "Play instead of answering: the seekers pick another unasked question in the same category."
+      "description": "Play instead of answering: the seekers randomly pick another unasked question from the same category, and that is the question they must answer."
     },
     {
       "id": "p5",
       "kind": "power",
       "name": "Veto",
       "short": "Veto",
-      "description": "Play instead of answering: the seekers get no answer, and you draw no cards."
+      "description": "Play instead of answering: the seekers get no answer at all, and you draw no cards."
     },
     {
       "id": "p6",
       "kind": "power",
       "name": "Veto",
       "short": "Veto",
-      "description": "Play instead of answering: the seekers get no answer, and you draw no cards."
+      "description": "Play instead of answering: the seekers get no answer at all, and you draw no cards."
     },
     {
       "id": "p7",
       "kind": "power",
       "name": "Veto",
       "short": "Veto",
-      "description": "Play instead of answering: the seekers get no answer, and you draw no cards."
+      "description": "Play instead of answering: the seekers get no answer at all, and you draw no cards."
     },
     {
       "id": "p8",
       "kind": "power",
       "name": "Veto",
       "short": "Veto",
-      "description": "Play instead of answering: the seekers get no answer, and you draw no cards."
+      "description": "Play instead of answering: the seekers get no answer at all, and you draw no cards."
     },
     {
       "id": "p9",
       "kind": "power",
       "name": "Duplicate",
       "short": "Dup",
-      "description": "Copy any other card in your hand. The original stays."
+      "description": "Copy any other card in your hand into a second slot, so you can use it twice. The original stays."
     },
     {
       "id": "p10",
       "kind": "power",
       "name": "Duplicate",
       "short": "Dup",
-      "description": "Copy any other card in your hand. The original stays."
+      "description": "Copy any other card in your hand into a second slot, so you can use it twice. The original stays."
     },
     {
       "id": "p11",
       "kind": "power",
       "name": "Move",
       "short": "Move",
-      "description": "Get time to establish a new hiding zone. Then discard your whole hand."
+      "description": "Play instead of answering: you get time to travel to a new hiding zone and set it up while the seekers ask nothing, but you must then discard your whole hand."
     },
     {
       "id": "p12",
       "kind": "power",
       "name": "Discard 1 Draw 2",
       "short": "D1D2",
-      "description": "Discard 1 card to draw 2. Needs a card to discard."
+      "description": "Discard 1 card from your hand to draw 2 new cards straight into it. You need at least 1 card in hand to play this."
     },
     {
       "id": "p13",
       "kind": "power",
       "name": "Discard 1 Draw 2",
       "short": "D1D2",
-      "description": "Discard 1 card to draw 2. Needs a card to discard."
+      "description": "Discard 1 card from your hand to draw 2 new cards straight into it. You need at least 1 card in hand to play this."
     },
     {
       "id": "p14",
       "kind": "power",
       "name": "Discard 1 Draw 2",
       "short": "D1D2",
-      "description": "Discard 1 card to draw 2. Needs a card to discard."
+      "description": "Discard 1 card from your hand to draw 2 new cards straight into it. You need at least 1 card in hand to play this."
     },
     {
       "id": "p15",
       "kind": "power",
       "name": "Discard 1 Draw 2",
       "short": "D1D2",
-      "description": "Discard 1 card to draw 2. Needs a card to discard."
+      "description": "Discard 1 card from your hand to draw 2 new cards straight into it. You need at least 1 card in hand to play this."
     },
     {
       "id": "p16",
       "kind": "power",
       "name": "Discard 2 Draw 3",
       "short": "D2D3",
-      "description": "Discard 2 cards to draw 3. Needs 2 cards to discard."
+      "description": "Discard 2 cards from your hand to draw 3 new cards straight into it. You need at least 2 cards in hand to play this."
     },
     {
       "id": "p17",
       "kind": "power",
       "name": "Discard 2 Draw 3",
       "short": "D2D3",
-      "description": "Discard 2 cards to draw 3. Needs 2 cards to discard."
+      "description": "Discard 2 cards from your hand to draw 3 new cards straight into it. You need at least 2 cards in hand to play this."
     },
     {
       "id": "p18",
       "kind": "power",
       "name": "Discard 2 Draw 3",
       "short": "D2D3",
-      "description": "Discard 2 cards to draw 3. Needs 2 cards to discard."
+      "description": "Discard 2 cards from your hand to draw 3 new cards straight into it. You need at least 2 cards in hand to play this."
     },
     {
       "id": "p19",
       "kind": "power",
       "name": "Discard 2 Draw 3",
       "short": "D2D3",
-      "description": "Discard 2 cards to draw 3. Needs 2 cards to discard."
+      "description": "Discard 2 cards from your hand to draw 3 new cards straight into it. You need at least 2 cards in hand to play this."
     },
     {
       "id": "p20",
       "kind": "power",
       "name": "Draw 1 Expand 1",
       "short": "D1E1",
-      "description": "Draw 1 card and raise your hand limit by 1 for the rest of the round."
+      "description": "Draw 1 card straight into your hand and raise your hand limit by 1 for the rest of the run."
     },
     {
       "id": "p21",
       "kind": "power",
       "name": "Draw 1 Expand 1",
       "short": "D1E1",
-      "description": "Draw 1 card and raise your hand limit by 1 for the rest of the round."
+      "description": "Draw 1 card straight into your hand and raise your hand limit by 1 for the rest of the run."
     },
     {
       "id": "c1",

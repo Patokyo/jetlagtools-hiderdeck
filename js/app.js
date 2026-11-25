@@ -15,7 +15,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=23";
+} from "./deck.js?v=24";
 import {
   POWER_PLAY,
   SIZES,
@@ -23,10 +23,10 @@ import {
   cardOf,
   curseCost,
   curseText,
-} from "./cards.js?v=23";
-import { trackDrag } from "./gestures.js?v=23";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=23";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=23";
+} from "./cards.js?v=24";
+import { trackDrag } from "./gestures.js?v=24";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=24";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=24";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -597,7 +597,7 @@ function playPowerUp(el, card, x) {
     return;
   }
 
-  // Randomize, Veto and Move are settled at the table: the app just lets go of
+  // Randomise, Veto and Move are settled at the table: the app just lets go of
   // the card. Draw 1 Expand 1 needs no choice, so it happens now.
   finishPower(el, {}, x);
 }
