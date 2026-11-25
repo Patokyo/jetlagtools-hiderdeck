@@ -1,6 +1,6 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-import { baseId } from "./cards.js?v=27";
+import { baseId } from "./cards.js?v=28";
 
 export const SCHEMA_VERSION = 5;
 export const DEFAULT_HAND_LIMIT = 6;
@@ -194,11 +194,15 @@ export function keepActive(state, { replace = null } = {}) {
 
 /**
  * Swipe-up escape hatch: throw away the card in play and everything parked
- * behind it, without deciding any of them one at a time.
+ * behind it, without deciding any of them one at a time. With `hand` the rest
+ * of the hand goes too, which is what playing Move does.
  */
-export function discardAllInPlay(state) {
-  const ids = [...(state.active === null ? [] : [state.active]), ...state.pending];
-  if (ids.length === 0) return { state, count: 0 };
+export function discardAllInPlay(state, { hand = false } = {}) {
+  const inPlay = [...(state.active === null ? [] : [state.active]), ...state.pending];
+  // A card being read is in `active` and in the hand, so it only counts once.
+  const handIds = hand ? state.hand.filter((id) => id !== state.active) : [];
+  const ids = [...inPlay, ...handIds];
+  if (ids.length === 0) return { state, count: 0, handDiscarded: [] };
 
   const leaving = new Set(ids);
   return {
@@ -214,6 +218,7 @@ export function discardAllInPlay(state) {
       updatedAt: Date.now(),
     },
     count: ids.length,
+    handDiscarded: handIds,
   };
 }
 

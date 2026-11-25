@@ -15,7 +15,7 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=27";
+} from "./deck.js?v=28";
 import {
   POWER_PLAY,
   SIZES,
@@ -24,10 +24,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=27";
-import { trackDrag } from "./gestures.js?v=27";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=27";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=27";
+} from "./cards.js?v=28";
+import { trackDrag } from "./gestures.js?v=28";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=28";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=28";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -184,7 +184,10 @@ function tryDraw() {
 function discardInPlay() {
   const playingHandCard = app.run.review;
   const played = playingHandCard ? cardOf(app.cards, app.run.active) : null;
-  const result = discardAllInPlay(app.run);
+  // Playing Move by swiping the table has to take the hand with it, the same
+  // as playing it off the card.
+  const move = played?.kind === "power" && played.name === "Move";
+  const result = discardAllInPlay(app.run, { hand: move });
   if (result.count === 0) {
     showToast("Nothing in play");
     return;
@@ -201,6 +204,10 @@ function discardInPlay() {
   renderTable();
   updateIdleHint();
   if (played?.kind === "curse") copyCurse(played);
+  if (move) {
+    copyMove(played, result.handDiscarded.length);
+    return;
+  }
   showToast(
     playingHandCard
       ? "Card played"
@@ -630,8 +637,15 @@ function playPowerUp(el, card, x) {
     return;
   }
 
-  // Randomise, Veto and Move are settled at the table: the app just lets go of
-  // the card. Draw 1 Expand 1 needs no choice, so it happens now.
+  // Move throws the rest of the hand away as it leaves; there is nothing to
+  // pick, the whole hand goes.
+  if (plan.discardHand) {
+    finishPower(el, { discards: others }, x);
+    return;
+  }
+
+  // Randomise and Veto are settled at the table: the app just lets go of the
+  // card. Draw 1 Expand 1 needs no choice, so it happens now.
   finishPower(el, {}, x);
 }
 
@@ -838,7 +852,7 @@ function finishPower(el, { discards = [], duplicateOf = null } = {}, x = 0) {
   // Move is an instruction to the seekers, so it goes to the clipboard rather
   // than only off the table: its own toast says both things at once.
   if (card?.name === "Move") {
-    copyMove(card);
+    copyMove(card, discards.length);
     return;
   }
 
@@ -873,11 +887,16 @@ function copyCurse(card) {
   );
 }
 
-/** Move has to be sent to the seekers, so playing it copies its whole text. */
-function copyMove(card) {
+/**
+ * Move has to be sent to the seekers, so playing it copies its whole text. It
+ * also takes the rest of the hand with it, so the toast says so.
+ */
+function copyMove(card, discarded = 0) {
   copyText(
     formatEffect(card.description, app.size, app.units),
-    "Move played · copied for the seekers",
+    discarded
+      ? `Move played · discarded ${discarded} · copied`
+      : "Move played · copied for the seekers",
     "Move played · could not copy its text",
   );
 }

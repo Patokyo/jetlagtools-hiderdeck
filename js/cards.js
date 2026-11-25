@@ -30,12 +30,13 @@ export function cardOf(cardsById, id) {
  * hand first, `draw` cards then arrive straight into the hand, `expand` raises
  * the hand limit, and `duplicate` copies a picked hand card. Randomise and Veto
  * are settled at the table, so the app only lets go of the card; Move also
- * copies its text, which is the part the seekers have to be sent.
+ * copies its text, which is the part the seekers have to be sent, and throws
+ * the rest of the hand away because that is what the card says to do.
  */
 export const POWER_PLAY = {
   Randomise: {},
   Veto: {},
-  Move: {},
+  Move: { discardHand: true },
   Duplicate: { duplicate: 1 },
   "Discard 1 Draw 2": { discards: 1, draw: 2 },
   "Discard 2 Draw 3": { discards: 2, draw: 3 },

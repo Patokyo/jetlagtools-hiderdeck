@@ -5,7 +5,7 @@
 // a fresh cache and activate drops the old one, so a release never mixes files
 // from two versions.
 
-const VERSION = "v27";
+const VERSION = "v28";
 const CACHE = `hiderdeck-${VERSION}`;
 
 // Cache keys are absolute, so the same URL strings the page requests are used.
@@ -15,15 +15,15 @@ const ASSETS = [
   ROOT,
   `${ROOT}index.html`,
   `${ROOT}manifest.webmanifest`,
-  `${ROOT}css/reset.css?v=27`,
-  `${ROOT}css/layout.css?v=27`,
-  `${ROOT}css/card.css?v=27`,
-  `${ROOT}js/app.js?v=27`,
-  `${ROOT}js/cards.js?v=27`,
-  `${ROOT}js/deck.js?v=27`,
-  `${ROOT}js/gestures.js?v=27`,
-  `${ROOT}js/render.js?v=27`,
-  `${ROOT}js/storage.js?v=27`,
+  `${ROOT}css/reset.css?v=28`,
+  `${ROOT}css/layout.css?v=28`,
+  `${ROOT}css/card.css?v=28`,
+  `${ROOT}js/app.js?v=28`,
+  `${ROOT}js/cards.js?v=28`,
+  `${ROOT}js/deck.js?v=28`,
+  `${ROOT}js/gestures.js?v=28`,
+  `${ROOT}js/render.js?v=28`,
+  `${ROOT}js/storage.js?v=28`,
   `${ROOT}data/cards.json`,
   `${ROOT}assets/favicon.svg`,
 ];
