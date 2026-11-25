@@ -627,7 +627,7 @@
       "kind": "power",
       "name": "Move",
       "short": "Move",
-      "description": "Discard your hand and send the hiders the location of your station. You then have [S10, M20, L60] minutes to establish a new hiding zone somewhere else on the map. The seekers are frozen during this time. This cannot be played during the end game."
+      "description": "Discard your hand and send the seekers the location of your station. You then have [S10, M20, L60] minutes to establish a new hiding zone somewhere else on the map. The seekers are frozen during this time. This cannot be played during the end game."
     },
     {
       "id": "p12",
