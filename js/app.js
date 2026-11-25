@@ -13,11 +13,11 @@ import {
   playCurse,
   playPower,
   sanitize,
-} from "./deck.js?v=11";
-import { POWER_PLAY, SIZES, cardOf, curseCost } from "./cards.js?v=11";
-import { trackDrag } from "./gestures.js?v=11";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=11";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=11";
+} from "./deck.js?v=12";
+import { POWER_PLAY, SIZES, UNITS, cardOf, curseCost } from "./cards.js?v=12";
+import { trackDrag } from "./gestures.js?v=12";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=12";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=12";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -34,6 +34,7 @@ const resetButton = document.getElementById("reset");
 const settingsOpen = document.getElementById("settings-open");
 const settingsDialog = document.getElementById("settings");
 const sizeInputs = [...document.querySelectorAll('input[name="size"]')];
+const unitInputs = [...document.querySelectorAll('input[name="units"]')];
 const hudEls = {
   deck: document.getElementById("deck-count"),
   hand: document.getElementById("hand-count"),
@@ -45,6 +46,8 @@ const app = {
   run: null,
   cardEl: null,
   size: "medium",
+  // "metric" or "imperial": which half of each card's distance pair is shown.
+  units: "metric",
   // Set while a card being played (or kept into a full hand) is waiting for
   // hand cards to be picked.
   pick: null,
@@ -74,6 +77,7 @@ async function boot() {
 
   const settings = loadSettings();
   if (SIZES.includes(settings.size)) app.size = settings.size;
+  if (UNITS.includes(settings.units)) app.units = settings.units;
 
   const stored = sanitize(load(), new Set(app.cards.keys()));
   app.run = stored ?? createRun([...app.cards.keys()], { handLimit: DEFAULT_HAND_LIMIT });
@@ -90,7 +94,7 @@ async function boot() {
 /** HUD, the fan behind the live card, and the hand strip. */
 function renderTable() {
   renderHud(app.run, hudEls, app.cards, app.size);
-  renderPeek(app.run, stackEl, app.cards, focusCard, app.size);
+  renderPeek(app.run, stackEl, app.cards, focusCard, app.size, app.units);
   renderHand(app.run, handEl, app.cards, focusHandCard, app.size, pickState());
 }
 
@@ -258,7 +262,7 @@ function showCard(cardId, { animate = true } = {}) {
   const card = cardOf(app.cards, cardId);
   if (!card) return;
 
-  const el = createCardEl(card, app.size);
+  const el = createCardEl(card, app.size, app.units);
   el.dataset.id = cardId;
   el.classList.add("card--live");
   stackEl.append(el);
@@ -644,6 +648,7 @@ function newRun() {
 function bindSettings() {
   settingsOpen.addEventListener("click", () => {
     for (const input of sizeInputs) input.checked = input.value === app.size;
+    for (const input of unitInputs) input.checked = input.value === app.units;
     if (typeof settingsDialog.showModal === "function") settingsDialog.showModal();
     else settingsDialog.setAttribute("open", "");
   });
@@ -651,6 +656,12 @@ function bindSettings() {
   for (const input of sizeInputs) {
     input.addEventListener("change", () => {
       if (input.checked) setSize(input.value);
+    });
+  }
+
+  for (const input of unitInputs) {
+    input.addEventListener("change", () => {
+      if (input.checked) setUnits(input.value);
     });
   }
 
@@ -663,8 +674,24 @@ function setSize(size) {
   if (!SIZES.includes(size) || size === app.size) return;
 
   app.size = size;
-  saveSettings({ size });
+  saveSettings({ size: app.size, units: app.units });
+  refreshFaces();
 
+  showToast(`${size[0].toUpperCase()}${size.slice(1)} game`);
+}
+
+function setUnits(units) {
+  if (!UNITS.includes(units) || units === app.units) return;
+
+  app.units = units;
+  saveSettings({ size: app.size, units: app.units });
+  refreshFaces();
+
+  showToast(units === "metric" ? "Metric measurements" : "Imperial measurements");
+}
+
+/** Redraw the table after a display setting changes. */
+function refreshFaces() {
   app.pick = null;
   renderTable();
   if (app.run.active) {
@@ -674,8 +701,6 @@ function setSize(size) {
   } else {
     updateIdleHint();
   }
-
-  showToast(`${size[0].toUpperCase()}${size.slice(1)} game`);
 }
 
 function persist() {

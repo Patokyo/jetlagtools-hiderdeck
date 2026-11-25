@@ -4,6 +4,9 @@ export const SIZES = ["small", "medium", "large"];
 
 export const SIZE_LABELS = { small: "Small", medium: "Medium", large: "Large" };
 
+/** Distances are written metric-first, with the imperial reading as an option. */
+export const UNITS = ["metric", "imperial"];
+
 /** Best time bonus available at each game size. The clock face is scaled to it. */
 export const MAX_MINUTES = { small: 12, medium: 18, large: 30 };
 
@@ -78,6 +81,13 @@ export function curseCost(cost) {
  */
 const RANGE = /\[\s*S\s*([\d.]+)\s*[, ]\s*M\s*([\d.]+)\s*[, ]\s*(?:L\s*)?([\d.]+)\s*\]/gi;
 
+/** A distance given in both units, e.g. "[S1, M5, L30]mi [S0.3, M1.5, L9.1]km". */
+const DISTANCE_PAIR =
+  /\[\s*S\s*([\d.]+)\s*[, ]\s*M\s*([\d.]+)\s*[, ]\s*L\s*([\d.]+)\s*\]\s*mi\s+\[\s*S\s*([\d.]+)\s*[, ]\s*M\s*([\d.]+)\s*[, ]\s*L\s*([\d.]+)\s*\]\s*km/gi;
+
+/** Feet with a metric reading in brackets, e.g. "1,000ft (300 meters)". */
+const FEET_PAREN = /([\d,]+)\s*ft\s*\(\s*([\d,]+)\s*(m|meters?|metres?)\s*\)/gi;
+
 export function minutesFor(card, size) {
   if (!card.minutes) return 0;
   return card.minutes[size] ?? card.minutes.medium;
@@ -106,13 +116,28 @@ export function handMinutes(hand, cardsById, size) {
   return total;
 }
 
-export function formatEffect(text, size) {
+/**
+ * Card text for the selected game size and unit system. Distances are written
+ * once per unit in cards.json; only the chosen one survives, so a metric player
+ * never sees miles and an imperial player never sees kilometres.
+ */
+export function formatEffect(text, size, units = "metric") {
   if (!text) return "";
 
   const index = SIZES.indexOf(size);
   const pick = index === -1 ? 1 : index;
+  const metric = units !== "imperial";
 
-  return text.replace(RANGE, (_match, small, medium, large) => [small, medium, large][pick]);
+  return String(text)
+    .replace(DISTANCE_PAIR, (_match, smi, mmi, lmi, skm, mkm, lkm) =>
+      metric
+        ? `${[skm, mkm, lkm][pick]}km`
+        : `${[smi, mmi, lmi][pick]}mi`,
+    )
+    .replace(FEET_PAREN, (_match, feet, metres, unit) =>
+      metric ? `${metres}${unit.toLowerCase() === "m" ? "m" : " meters"}` : `${feet}ft`,
+    )
+    .replace(RANGE, (_match, small, medium, large) => [small, medium, large][pick]);
 }
 
 /** The short string on a hand card. */

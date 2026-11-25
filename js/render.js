@@ -9,7 +9,7 @@ import {
   handMinutes,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=11";
+} from "./cards.js?v=12";
 
 let toastTimer = null;
 
@@ -102,7 +102,7 @@ function clockIcon(card, size) {
   return svg;
 }
 
-function fillCard(el, card, size) {
+function fillCard(el, card, size, units) {
   el.classList.add("card", `card--${card.kind}`);
   el.dataset.id = card.id;
   el.dataset.kind = card.kind;
@@ -134,28 +134,28 @@ function fillCard(el, card, size) {
   const cost = node("div", "card__cost");
   cost.append(
     node("span", "card__cost-label", "Casting cost"),
-    node("span", "card__cost-text", formatEffect(card.cost, size) || "None"),
+    node("span", "card__cost-text", formatEffect(card.cost, size, units) || "None"),
   );
 
   el.append(
     node("span", "card__kind", "Curse"),
     node("h2", "card__title", card.title),
-    node("p", "card__effect", formatEffect(card.effect, size)),
+    node("p", "card__effect", formatEffect(card.effect, size, units)),
     cost,
   );
   return el;
 }
 
-export function createCardEl(card, size) {
-  const el = fillCard(document.createElement("article"), card, size);
+export function createCardEl(card, size, units = "metric") {
+  const el = fillCard(document.createElement("article"), card, size, units);
   el.setAttribute("role", "img");
   el.setAttribute("aria-label", fullLabel(card, size));
   return el;
 }
 
 /** A drawn-but-undecided card, peeking out behind the live one. Tapping focuses it. */
-export function createPeekEl(card, depth, size) {
-  const el = fillCard(document.createElement("button"), card, size);
+export function createPeekEl(card, depth, size, units = "metric") {
+  const el = fillCard(document.createElement("button"), card, size, units);
   el.type = "button";
   el.classList.add("card--peek");
   el.style.setProperty("--depth", String(depth));
@@ -190,7 +190,7 @@ export function fitCard(el) {
  * live card; each older one steps further left. Only the live card is removed
  * by this module's caller, so peeks are rebuilt in place.
  */
-export function renderPeek(state, container, cardsById, onFocus, size) {
+export function renderPeek(state, container, cardsById, onFocus, size, units = "metric") {
   if (!container) return;
   // Drives the centring offset: no fan means no shift, so the single card is
   // centred; the shift grows so the card plus its fan stays centred.
@@ -202,7 +202,7 @@ export function renderPeek(state, container, cardsById, onFocus, size) {
     if (!card) return;
 
     const depth = state.pending.length - index;
-    const el = createPeekEl(card, depth, size);
+    const el = createPeekEl(card, depth, size, units);
     el.addEventListener("click", () => onFocus(id));
     container.append(el);
     fitCard(el);

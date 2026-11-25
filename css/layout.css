@@ -298,6 +298,10 @@ body {
   border: 0;
 }
 
+.sizes + .sizes {
+  margin-top: 8px;
+}
+
 .size {
   display: flex;
   align-items: center;
