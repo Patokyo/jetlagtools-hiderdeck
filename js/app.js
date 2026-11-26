@@ -17,7 +17,7 @@ import {
   playPower,
   reorderHand,
   sanitize,
-} from "./deck.js?v=41";
+} from "./deck.js?v=42";
 import {
   POWER_PLAY,
   SIZES,
@@ -26,10 +26,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=41";
-import { trackDrag } from "./gestures.js?v=41";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=41";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=41";
+} from "./cards.js?v=42";
+import { trackDrag } from "./gestures.js?v=42";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=42";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=42";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -41,6 +41,7 @@ const stage = document.getElementById("stage");
 // index.html still gets a working table instead of a silently dead one.
 const stackEl = document.getElementById("stack") ?? document.getElementById("slot");
 const handEl = document.getElementById("hand");
+const tableEl = document.querySelector(".table");
 const hint = document.getElementById("hint");
 const tray = document.getElementById("tray");
 const resetButton = document.getElementById("reset");
@@ -114,6 +115,8 @@ async function boot() {
 /** HUD, the fan behind the live card, and the hand strip. */
 function renderTable() {
   clearHandDrags();
+  // Keeping into a full hand pulls the hand up to the middle of the screen.
+  tableEl?.classList.toggle("is-replacing", app.pick?.mode === "replace");
   renderHud(app.run, hudEls, app.cards, app.size);
   renderPeek(app.run, stackEl, app.cards, app.size, app.units, attachPeekGrab);
   renderHand(
@@ -1220,6 +1223,7 @@ function beginPick(el, message) {
   // read: park it half off the top edge so the hand is what the player acts on.
   // Keeping into a full hand is not a play, so that one stays in place.
   if (app.pick && app.pick.mode !== "replace") liftCard(el);
+  else if (app.pick) sinkCard(el);
 }
 
 /**
@@ -1236,6 +1240,27 @@ function liftCard(el) {
   const { top, height } = el.getBoundingClientRect();
 
   el.style.transform = `translateY(${-(top + height / 2)}px)`;
+  el.style.transition = "transform 320ms cubic-bezier(.22,1.1,.36,1)";
+  el.style.pointerEvents = "none";
+  el.classList.add("is-playing");
+}
+
+/**
+ * Keeping into a full hand: the card drops to the bottom edge with only a band
+ * of it left showing, out of the way of the hand, which is up in the middle
+ * waiting to be told which of its cards makes room.
+ */
+const SINK_PEEK = 58; // px of the card left showing above the bottom edge
+
+function sinkCard(el) {
+  // Measure the resting place with the snap-back transition off, or the
+  // half-finished drag position is counted into the offset.
+  el.style.transition = "none";
+  el.style.transform = "none";
+  void el.offsetHeight;
+  const { top } = el.getBoundingClientRect();
+
+  el.style.transform = `translateY(${window.innerHeight - SINK_PEEK - top}px)`;
   el.style.transition = "transform 320ms cubic-bezier(.22,1.1,.36,1)";
   el.style.pointerEvents = "none";
   el.classList.add("is-playing");

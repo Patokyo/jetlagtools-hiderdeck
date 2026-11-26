@@ -10,9 +10,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Hider Deck">
-  <link rel="stylesheet" href="./css/reset.css?v=41">
-  <link rel="stylesheet" href="./css/layout.css?v=41">
-  <link rel="stylesheet" href="./css/card.css?v=41">
+  <link rel="stylesheet" href="./css/reset.css?v=42">
+  <link rel="stylesheet" href="./css/layout.css?v=42">
+  <link rel="stylesheet" href="./css/card.css?v=42">
 </head>
 <body>
   <main class="stage" id="stage">
@@ -46,10 +46,12 @@
       <div class="slot" id="slot">
         <div class="stack" id="stack"></div>
       </div>
-      <div class="hand" id="hand" role="group" aria-label="Your hand" hidden></div>
-      <div class="tray" id="tray" role="button" tabindex="0" aria-label="Draw a card">
-        <span class="tray__grip" aria-hidden="true"></span>
-        <p class="hint" id="hint" aria-live="polite">Tap or pull down to draw</p>
+      <div class="dock">
+        <div class="hand" id="hand" role="group" aria-label="Your hand" hidden></div>
+        <div class="tray" id="tray" role="button" tabindex="0" aria-label="Draw a card">
+          <span class="tray__grip" aria-hidden="true"></span>
+          <p class="hint" id="hint" aria-live="polite">Tap or pull down to draw</p>
+        </div>
       </div>
     </section>
   </main>
@@ -101,6 +103,6 @@
     <p class="noscript">This deck needs JavaScript enabled.</p>
   </noscript>
 
-  <script type="module" src="./js/app.js?v=41"></script>
+  <script type="module" src="./js/app.js?v=42"></script>
 </body>
 </html>
