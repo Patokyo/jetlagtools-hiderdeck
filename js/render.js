@@ -10,7 +10,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=36";
+} from "./cards.js?v=37";
 
 let toastTimer = null;
 

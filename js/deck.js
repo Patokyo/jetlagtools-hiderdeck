@@ -1,6 +1,6 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-import { baseId } from "./cards.js?v=36";
+import { baseId } from "./cards.js?v=37";
 
 export const SCHEMA_VERSION = 5;
 export const DEFAULT_HAND_LIMIT = 6;
@@ -162,6 +162,25 @@ export function reorderHand(state, cardId, beforeId = null) {
 
   if (hand.every((id, i) => id === state.hand[i])) return state;
   return { ...state, hand, updatedAt: Date.now() };
+}
+
+/**
+ * Put a parked card somewhere else in the fan. `beforeId` is the card it should
+ * end up behind, further from the card in play, or null to sit at the front of
+ * the fan. The order is how the fan reads and which card comes forward when the
+ * table clears, so nothing else about the run changes — and a card dropped back
+ * among the same neighbours leaves the same state behind, which the caller can
+ * test by identity.
+ */
+export function reorderPending(state, cardId, beforeId = null) {
+  if (!state.pending.includes(cardId) || cardId === beforeId) return state;
+
+  const pending = state.pending.filter((id) => id !== cardId);
+  const at = beforeId === null ? pending.length : pending.indexOf(beforeId);
+  pending.splice(at === -1 ? pending.length : at, 0, cardId);
+
+  if (pending.every((id, i) => id === state.pending[i])) return state;
+  return { ...state, pending, updatedAt: Date.now() };
 }
 
 /**

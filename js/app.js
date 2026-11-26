@@ -15,8 +15,9 @@ import {
   playCurse,
   playPower,
   reorderHand,
+  reorderPending,
   sanitize,
-} from "./deck.js?v=36";
+} from "./deck.js?v=37";
 import {
   POWER_PLAY,
   SIZES,
@@ -25,10 +26,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=36";
-import { trackDrag } from "./gestures.js?v=36";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=36";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=36";
+} from "./cards.js?v=37";
+import { trackDrag } from "./gestures.js?v=37";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=37";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=37";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -114,7 +115,7 @@ async function boot() {
 function renderTable() {
   clearHandDrags();
   renderHud(app.run, hudEls, app.cards, app.size);
-  renderPeek(app.run, stackEl, app.cards, focusCard, app.size, app.units, attachPeekGrab);
+  renderPeek(app.run, stackEl, app.cards, focusCardFromTap, app.size, app.units, attachPeekGrab);
   renderHand(
     app.run,
     handEl,
@@ -185,12 +186,24 @@ function bindTrayDraw() {
     onMove: ({ y }) => pullHint(y),
     onEnd: ({ y, vx, vy, moved }) => {
       settleHint();
-      if (!moved) return;
+
+      // A press is enough: the handle is a button as well as a pull.
+      if (!moved) {
+        tryDraw();
+        return;
+      }
 
       const vertical = Math.abs(vx) < Math.abs(vy);
       if (y > DRAW_DISTANCE || (vy > FLICK_VELOCITY && vertical)) tryDraw();
     },
     onCancel: settleHint,
+  });
+
+  // And the same button for a keyboard or a switch.
+  tray.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    tryDraw();
   });
 }
 
@@ -325,6 +338,12 @@ function focusHandCardFromTap(cardId) {
   focusHandCard(cardId);
 }
 
+function focusCardFromTap(cardId) {
+  // Same guard for the fan: a sort drag ends in a click on the card it moved.
+  if (performance.now() - peekDragAt < CLICK_GUARD_MS) return;
+  focusCard(cardId);
+}
+
 /* --- lifting a card out of the hand ---------------------------------- */
 
 const PLAY_OVERSHOOT = 48; // px past the table that counts as a swipe up
@@ -333,11 +352,14 @@ const CLICK_GUARD_MS = 500; // the click that ends a drag is not a tap
 const REORDER_SLOP = 6; // px of travel before a drag picks a direction
 const REORDER_EDGE = 44; // px from the strip's edge that scrolls it
 const REORDER_SCROLL = 8; // px the strip scrolls per frame at the edge
+const PEEK_SORT_BIAS = 1.4; // sideways has to win by this much: deciding is the common drag
 
 // Drags wired onto the minis of the last render, so a redraw can drop them.
 let handDragDetach = [];
 // When the last real drag on a hand card ended.
 let handDragAt = 0;
+// When the last real drag on a card in the fan ended.
+let peekDragAt = 0;
 
 function clearHandDrags() {
   for (const detach of handDragDetach) detach();
@@ -737,15 +759,36 @@ function snapPeek(el) {
 /**
  * A parked card can be grabbed straight out of the fan. It stays where it is —
  * at its own place in the fan, no jump to the front — and follows the finger
- * from there, so the same gesture can end in a keep or a discard.
+ * from there, so the same gesture can end in a keep or a discard. Sideways it
+ * instead moves through the fan, with the cards it passes stepping over to
+ * open a gap for where it will land. A press with no drag brings it forward.
  */
 function attachPeekGrab(el, cardId) {
+  // Which way the drag went: "decide" for a keep or discard, "sort" in the fan.
+  let mode = null;
+  let sort = null;
+
   trackDrag(el, {
     onStart: () => {
       el.style.transition = "none";
       el.style.zIndex = "40";
+      mode = null;
+      sort = null;
     },
     onMove: ({ x, y }) => {
+      // The first real movement picks the gesture. Sideways has to win by a
+      // clear margin: an upward flick that drifts is still a discard.
+      if (!mode) {
+        if (Math.hypot(x, y) < REORDER_SLOP) return;
+        mode = Math.abs(x) > Math.abs(y) * PEEK_SORT_BIAS ? "sort" : "decide";
+        if (mode === "sort") sort = startPeekSort(el, cardId);
+      }
+
+      if (mode === "sort") {
+        dragPeekSort(sort, el, x);
+        return;
+      }
+
       // The standalone translate property composes with the fan's transform,
       // so the carried card keeps its own step and lean while it moves.
       el.style.translate = `${x}px ${y}px`;
@@ -753,8 +796,16 @@ function attachPeekGrab(el, cardId) {
       setIntent(el, y <= -threshold ? "discard" : y >= threshold ? "keep" : "");
     },
     onEnd: ({ x, y, vx, vy, moved }) => {
+      if (mode === "sort") {
+        peekDragAt = performance.now();
+        finishPeekSort(sort, el, cardId);
+        sort = null;
+        return;
+      }
+
       const action = moved && Math.abs(y) >= TAP_SLOP ? releaseAction(el, { y, vx, vy }) : null;
       if (action) {
+        peekDragAt = performance.now();
         resolvePending(el, cardId, action, x);
         return;
       }
@@ -762,8 +813,97 @@ function attachPeekGrab(el, cardId) {
       // A press with no drag still simply brings the card forward.
       if (!moved) focusCard(cardId);
     },
-    onCancel: () => snapPeek(el),
+    onCancel: () => {
+      if (sort) resetPeekSort(sort);
+      snapPeek(el);
+      sort = null;
+      mode = null;
+    },
   });
+}
+
+/* --- reordering the fan ---------------------------------------------- */
+
+/**
+ * The fan's order is only how it reads, and which card comes forward when the
+ * table clears, so sorting it changes nothing else about the run. The steps
+ * between cards are fixed, so a sideways drag is measured in those steps rather
+ * than against positions that are themselves moving.
+ */
+function startPeekSort(el, cardId) {
+  const order = app.run.pending.slice();
+  const index = order.indexOf(cardId);
+
+  setIntent(el, "");
+  el.style.translate = "0px 0px";
+
+  return { el, order, index, step: peekStep(), target: index, fan: peekEls() };
+}
+
+/** One step of the fan in pixels, read from the CSS so the two stay in step. */
+function peekStep() {
+  const raw = getComputedStyle(stackEl).getPropertyValue("--peek-offset");
+  return parseFloat(raw) || 44;
+}
+
+/** The peeks on the table by card id, so each can be given back its depth. */
+function peekEls() {
+  const map = new Map();
+  for (const node of stackEl.querySelectorAll(".card--peek")) {
+    if (node.dataset.id) map.set(node.dataset.id, node);
+  }
+  return map;
+}
+
+/** Give every peek the depth its place in `ids` calls for, sliding into it. */
+function setPeekDepths(ids, fan, skip = null) {
+  ids.forEach((id, index) => {
+    const node = fan.get(id);
+    if (!node || node === skip) return;
+    node.style.transition = "transform 180ms ease";
+    node.style.setProperty("--depth", String(ids.length - index));
+  });
+}
+
+function dragPeekSort(sort, el, x) {
+  const { order, index, step, fan } = sort;
+  const target = Math.max(0, Math.min(order.length - 1, index + Math.round(x / step)));
+
+  if (target !== sort.target) {
+    sort.target = target;
+
+    const next = order.slice();
+    next.splice(index, 1);
+    next.splice(target, 0, el.dataset.id);
+
+    // The carried card keeps its own depth and stays under the finger, so it is
+    // left out and only the cards it passes step over to open the gap.
+    setPeekDepths(next, fan, el);
+  }
+
+  el.style.translate = `${x}px 0px`;
+}
+
+/** Put the fan back the way it was drawn. */
+function resetPeekSort(sort) {
+  setPeekDepths(sort.order, sort.fan);
+}
+
+/** Let go: the fan takes the gap's place, and redraws in that order. */
+function finishPeekSort(sort, el, cardId) {
+  const rest = sort.order.filter((id) => id !== cardId);
+  const next = reorderPending(app.run, cardId, rest[sort.target] ?? null);
+
+  if (next === app.run) {
+    // Dropped back among the same neighbours: the fan steps home again.
+    resetPeekSort(sort);
+    snapPeek(el);
+    return;
+  }
+
+  app.run = next;
+  persist();
+  renderTable();
 }
 
 /**
@@ -1398,6 +1538,6 @@ function updateIdleHint() {
   else if (deck.length === 0 && hand.length) setHint("Tap a card below to read it");
   else if (deck.length === 0) setHint("The deck is empty");
   else if (hand.length >= handLimit) setHint("Hand full — keep swaps a card out");
-  else if (hand.length) setHint("Swipe down to draw · tap a hand card");
-  else setHint("Swipe down to draw");
+  else if (hand.length) setHint("Tap or pull down to draw · tap a hand card");
+  else setHint("Tap or pull down to draw");
 }
