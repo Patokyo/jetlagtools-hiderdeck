@@ -466,12 +466,13 @@
   background: var(--curse, #6b4bd6);
 }
 
-/* A hand card that can be pressed to bring it forward, or dragged up out of
-   the strip. Sideways panning still scrolls a strip that is too wide. */
+/* A hand card that can be pressed to bring it forward, dragged up out of the
+   strip, or dragged sideways to reorder the hand. A card owns sideways drags,
+   so the strip scrolls itself while one is carried near its edge. */
 .mini--button {
   font-family: inherit;
   cursor: pointer;
-  touch-action: pan-x;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform 140ms ease, box-shadow 140ms ease;
 }
@@ -481,6 +482,14 @@
   transform: translateY(-4px);
   outline: none;
   box-shadow: 0 0 0 2px var(--accent), 0 10px 18px -8px rgba(0, 0, 0, 0.9);
+}
+
+/* Where a card dragged sideways would land. It is a mini without a face, so the
+   rest of the strip opens a gap of exactly one card. */
+.mini--slot {
+  border: 1px dashed rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
 }
 
 /* Cards a played power up or curse cost is asking to use. */

@@ -1,6 +1,6 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-import { baseId } from "./cards.js?v=34";
+import { baseId } from "./cards.js?v=35";
 
 export const SCHEMA_VERSION = 5;
 export const DEFAULT_HAND_LIMIT = 6;
@@ -144,6 +144,24 @@ export function focusHand(state, cardId) {
     cardId,
     reason: null,
   };
+}
+
+/**
+ * Put a kept card somewhere else in the hand. `beforeId` is the card it should
+ * sit in front of, or null for the end of the strip. Hand order is only how the
+ * hand reads, so nothing else about the run changes — and a card dropped back
+ * where it came from leaves the same state behind, which the caller can test
+ * by identity.
+ */
+export function reorderHand(state, cardId, beforeId = null) {
+  if (!state.hand.includes(cardId) || cardId === beforeId) return state;
+
+  const hand = state.hand.filter((id) => id !== cardId);
+  const at = beforeId === null ? hand.length : hand.indexOf(beforeId);
+  hand.splice(at === -1 ? hand.length : at, 0, cardId);
+
+  if (hand.every((id, i) => id === state.hand[i])) return state;
+  return { ...state, hand, updatedAt: Date.now() };
 }
 
 /**

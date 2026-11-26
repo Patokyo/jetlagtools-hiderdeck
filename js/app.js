@@ -14,8 +14,9 @@ import {
   keepActive,
   playCurse,
   playPower,
+  reorderHand,
   sanitize,
-} from "./deck.js?v=34";
+} from "./deck.js?v=35";
 import {
   POWER_PLAY,
   SIZES,
@@ -24,10 +25,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=34";
-import { trackDrag } from "./gestures.js?v=34";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=34";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=34";
+} from "./cards.js?v=35";
+import { trackDrag } from "./gestures.js?v=35";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=35";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=35";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -300,6 +301,9 @@ function focusHandCardFromTap(cardId) {
 const PLAY_OVERSHOOT = 48; // px past the table that counts as a swipe up
 const FOCUS_PROGRESS = 0.55; // how grown a released card has to be to stay up
 const CLICK_GUARD_MS = 500; // the click that ends a drag is not a tap
+const REORDER_SLOP = 6; // px of travel before a drag picks a direction
+const REORDER_EDGE = 44; // px from the strip's edge that scrolls it
+const REORDER_SCROLL = 8; // px the strip scrolls per frame at the edge
 
 // Drags wired onto the minis of the last render, so a redraw can drop them.
 let handDragDetach = [];
@@ -312,19 +316,27 @@ function clearHandDrags() {
 }
 
 /**
- * A kept card can be lifted out of the strip and carried up to the table. It
- * grows to full size on the way, stays there when let go near the top, is
- * played when swiped past the table, and drops back into the hand when let go
- * low. A press with no drag is still just a tap, which brings it forward.
+ * A kept card can be lifted out of the strip and carried up to the table, or
+ * dragged sideways to put it somewhere else in the hand. Upwards it grows to
+ * full size on the way, stays there when let go near the top, is played when
+ * swiped past the table, and drops back into the hand when let go low. Sideways
+ * it stays mini sized and the rest of the strip opens a gap where it would
+ * land. A press with no drag is still just a tap, which brings it forward.
  */
 function attachHandGrab(el, cardId) {
   let ghost = null;
+  // Which way the drag went: "lift" for the table, "sort" along the strip.
+  let mode = null;
+  let sort = null;
 
   function release() {
+    if (sort) stopSort(sort);
+    sort = null;
     if (ghost) {
       ghost.el.remove();
       ghost = null;
     }
+    el.style.display = "";
     el.style.opacity = "";
   }
 
@@ -333,9 +345,22 @@ function attachHandGrab(el, cardId) {
       onStart: () => {
         ghost = liftMini(cardId, el);
         if (ghost) el.style.opacity = "0";
+        mode = null;
+        sort = null;
       },
       onMove: (payload) => {
-        if (ghost) dragGhost(ghost, payload);
+        if (!ghost) return;
+
+        // The first real movement picks the gesture: sideways reorders the
+        // hand, upwards carries the card to the table.
+        if (!mode) {
+          if (Math.hypot(payload.x, payload.y) < REORDER_SLOP) return;
+          mode = Math.abs(payload.x) > Math.abs(payload.y) ? "sort" : "lift";
+          if (mode === "sort") sort = startSort(ghost, el);
+        }
+
+        if (sort) dragSort(sort, ghost, payload.x);
+        else dragGhost(ghost, payload);
       },
       onEnd: (payload) => {
         if (!ghost) return;
@@ -348,6 +373,13 @@ function attachHandGrab(el, cardId) {
 
         handDragAt = performance.now();
         setIntent(ghost.el, "");
+
+        if (sort) {
+          finishSort(sort, ghost, cardId);
+          sort = null;
+          ghost = null;
+          return;
+        }
 
         if (wouldPlay(ghost, { y, vx, vy })) {
           ghost.el.remove();
@@ -368,6 +400,97 @@ function attachHandGrab(el, cardId) {
       onCancel: release,
     }),
   );
+}
+
+/* --- reordering the hand --------------------------------------------- */
+
+/**
+ * A sideways drag takes the card out of the strip's flow and leaves a dashed
+ * gap of the same size in its place, so the rest of the hand slides over as the
+ * card passes it. The card itself only follows x: it stays mini sized and level
+ * with the strip, and where the gap ends up is where the card is dropped.
+ */
+function startSort(ghost, el) {
+  const slot = document.createElement("div");
+  slot.className = "mini mini--slot";
+  slot.setAttribute("aria-hidden", "true");
+
+  el.after(slot);
+  el.style.display = "none";
+
+  return { ghost, slot, el, strip: el.parentElement, beforeId: null, centre: 0, dir: 0, timer: 0 };
+}
+
+/** The minis a carried card can land between, in strip order. */
+function sortSiblings(sort) {
+  return [...sort.strip.children].filter((node) => node !== sort.slot && node !== sort.el);
+}
+
+/** Drop the gap in front of the first mini the card's centre is left of. */
+function placeSlot(sort, centre) {
+  sort.centre = centre;
+
+  let ref = null;
+  for (const node of sortSiblings(sort)) {
+    const box = node.getBoundingClientRect();
+    if (centre < box.left + box.width / 2) {
+      ref = node;
+      break;
+    }
+  }
+
+  sort.strip.insertBefore(sort.slot, ref);
+  sort.beforeId = ref ? ref.dataset.id : null;
+}
+
+function dragSort(sort, ghost, x) {
+  placeGhost(ghost.el, ghost.x + x, ghost.y, ghost.scale);
+
+  const card = ghost.el.getBoundingClientRect();
+  const centre = card.left + card.width / 2;
+  placeSlot(sort, centre);
+
+  // A strip too wide to fit keeps scrolling while the card is held near either
+  // end, so it can be carried past what is on screen.
+  const strip = sort.strip.getBoundingClientRect();
+  const edge = Math.min(REORDER_EDGE, strip.width / 4);
+  sort.dir = centre < strip.left + edge ? -1 : centre > strip.right - edge ? 1 : 0;
+
+  if (sort.dir && !sort.timer) sort.timer = setInterval(() => scrollSort(sort), 16);
+  else if (!sort.dir && sort.timer) stopScroll(sort);
+}
+
+function scrollSort(sort) {
+  const before = sort.strip.scrollLeft;
+  sort.strip.scrollLeft = before + sort.dir * REORDER_SCROLL;
+  if (sort.strip.scrollLeft !== before) placeSlot(sort, sort.centre);
+}
+
+function stopScroll(sort) {
+  clearInterval(sort.timer);
+  sort.timer = 0;
+}
+
+/** Take the gap and the ghost away, leaving the strip as it was drawn. */
+function stopSort(sort) {
+  stopScroll(sort);
+  sort.slot.remove();
+  sort.el.style.display = "";
+}
+
+/** Let go: the hand takes the gap's place, and the strip redraws in that order. */
+function finishSort(sort, ghost, cardId) {
+  const { beforeId } = sort;
+  stopSort(sort);
+  sort.el.style.opacity = "";
+  ghost.el.remove();
+
+  const next = reorderHand(app.run, cardId, beforeId);
+  if (next === app.run) return;
+
+  app.run = next;
+  persist();
+  renderTable();
 }
 
 /** A full size copy of the card, placed and scaled exactly over its mini. */
