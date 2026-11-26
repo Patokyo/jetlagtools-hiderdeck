@@ -12,7 +12,7 @@
   /* Room is reserved for the hand strip whether or not it is showing, so
      keeping a card never resizes the card in play. The width cap leaves room
      for the fan of parked cards stepping out to the left. */
-  --card-h: min(calc(100vh - 216px - var(--hud-extra)), calc(80vw * 7 / 5), 640px);
+  --card-h: min(calc(100vh - 234px - var(--hud-extra)), calc(80vw * 7 / 5), 640px);
   --mini-h: clamp(62px, 10dvh, 84px);
   /* Height the HUD adds to clear the top of the page. Zero in a browser tab;
      an installed iOS app raises it, and the card gives the height back. */
@@ -25,7 +25,7 @@
 
 @supports (height: 100dvh) {
   :root {
-    --card-h: min(calc(100dvh - 216px - var(--hud-extra)), calc(80vw * 7 / 5), 640px);
+    --card-h: min(calc(100dvh - 234px - var(--hud-extra)), calc(80vw * 7 / 5), 640px);
     --mini-h: clamp(62px, 10dvh, 84px);
     --peek-offset: 42px;
     --peek-rotate: 1.6deg;
@@ -192,7 +192,7 @@ body {
   /* A wide fan has to fit on a phone, so the cards narrow as it grows: three
      parked cards plus their corners come to just under the screen width. */
   --card-w: min(80vw, calc(100vw - var(--fan, 0) * 54px));
-  --card-h: min(calc(100vh - 216px - var(--hud-extra)), calc(var(--card-w) * 7 / 5), 640px);
+  --card-h: min(calc(100vh - 234px - var(--hud-extra)), calc(var(--card-w) * 7 / 5), 640px);
 
   display: grid;
   place-items: center;
@@ -201,7 +201,7 @@ body {
 
 @supports (height: 100dvh) {
   .stack {
-    --card-h: min(calc(100dvh - 216px - var(--hud-extra)), calc(var(--card-w) * 7 / 5), 640px);
+    --card-h: min(calc(100dvh - 234px - var(--hud-extra)), calc(var(--card-w) * 7 / 5), 640px);
   }
 }
 
@@ -231,15 +231,40 @@ body {
   display: none;
 }
 
-/* The hint line under the hand. */
+/* The pull handle under the hand, and the hint line that doubles as its label.
+   A card in play covers most of a phone screen, so this strip is the one place
+   a thumb can always reach to pull another card: it is tall enough to hit
+   without looking and takes no aim. */
 .tray {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px 12px;
-  min-height: 26px;
+  gap: 6px;
+  min-height: 44px;
   padding: 0 12px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tray.is-dragging {
+  cursor: grabbing;
+}
+
+.tray__grip {
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--muted);
+  opacity: 0.45;
+  transition: opacity 150ms ease;
+}
+
+.tray.is-dragging .tray__grip {
+  opacity: 0.9;
 }
 
 .hint {

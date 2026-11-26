@@ -16,7 +16,7 @@ import {
   playPower,
   reorderHand,
   sanitize,
-} from "./deck.js?v=35";
+} from "./deck.js?v=36";
 import {
   POWER_PLAY,
   SIZES,
@@ -25,10 +25,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=35";
-import { trackDrag } from "./gestures.js?v=35";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=35";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=35";
+} from "./cards.js?v=36";
+import { trackDrag } from "./gestures.js?v=36";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=36";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=36";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -41,6 +41,7 @@ const stage = document.getElementById("stage");
 const stackEl = document.getElementById("stack") ?? document.getElementById("slot");
 const handEl = document.getElementById("hand");
 const hint = document.getElementById("hint");
+const tray = document.getElementById("tray");
 const resetButton = document.getElementById("reset");
 const settingsOpen = document.getElementById("settings-open");
 const settingsDialog = document.getElementById("settings");
@@ -75,6 +76,7 @@ async function boot() {
   resetButton.addEventListener("click", newRun);
   bindSettings();
   undoButton.addEventListener("click", undoLast);
+  bindTrayDraw();
   registerServiceWorker();
 
   try {
@@ -139,16 +141,13 @@ function bindTableDraw() {
     allow: (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return false;
-      return !target.closest(".card, .hand, .hud, .toast");
+      return !target.closest(".card, .hand, .hud, .toast, .tray");
     },
     onMove: ({ y }) => {
-      const pull = Math.max(0, Math.min(y, 140));
-      hint.style.transform = `translateY(${Math.min(pull * 0.25, 18)}px)`;
-      hint.style.opacity = String(1 - Math.min(pull / 280, 0.55));
+      pullHint(y);
     },
     onEnd: ({ y, vx, vy, moved }) => {
-      hint.style.transform = "";
-      hint.style.opacity = "";
+      settleHint();
       if (!moved) return;
 
       const vertical = Math.abs(vx) < Math.abs(vy);
@@ -158,10 +157,40 @@ function bindTableDraw() {
       if (pushedUp) discardInPlay();
       else if (pulledDown) tryDraw();
     },
-    onCancel: () => {
-      hint.style.transform = "";
-      hint.style.opacity = "";
+    onCancel: settleHint,
+  });
+}
+
+/** Follow the pull with the hint line, so the gesture has some give to it. */
+function pullHint(y) {
+  const pull = Math.max(0, Math.min(y, 140));
+  hint.style.transform = `translateY(${Math.min(pull * 0.25, 18)}px)`;
+  hint.style.opacity = String(1 - Math.min(pull / 280, 0.55));
+}
+
+function settleHint() {
+  hint.style.transform = "";
+  hint.style.opacity = "";
+}
+
+/**
+ * The pull handle under the hand. The card in play covers most of a phone
+ * screen, which leaves bare table as a thin border around it — no place to aim
+ * a thumb. The tray sits where the thumb already rests, is tall enough to hit
+ * without looking, and a downward swipe anywhere on it draws with the same
+ * distance and flick as a swipe on the table itself.
+ */
+function bindTrayDraw() {
+  trackDrag(tray, {
+    onMove: ({ y }) => pullHint(y),
+    onEnd: ({ y, vx, vy, moved }) => {
+      settleHint();
+      if (!moved) return;
+
+      const vertical = Math.abs(vx) < Math.abs(vy);
+      if (y > DRAW_DISTANCE || (vy > FLICK_VELOCITY && vertical)) tryDraw();
     },
+    onCancel: settleHint,
   });
 }
 
