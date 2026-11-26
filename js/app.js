@@ -17,7 +17,7 @@ import {
   playPower,
   reorderHand,
   sanitize,
-} from "./deck.js?v=39";
+} from "./deck.js?v=40";
 import {
   POWER_PLAY,
   SIZES,
@@ -26,10 +26,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=39";
-import { trackDrag } from "./gestures.js?v=39";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=39";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=39";
+} from "./cards.js?v=40";
+import { trackDrag } from "./gestures.js?v=40";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=40";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=40";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -115,7 +115,7 @@ async function boot() {
 function renderTable() {
   clearHandDrags();
   renderHud(app.run, hudEls, app.cards, app.size);
-  renderPeek(app.run, stackEl, app.cards, focusCardFromTap, app.size, app.units, attachPeekGrab);
+  renderPeek(app.run, stackEl, app.cards, app.size, app.units, attachPeekGrab);
   renderHand(
     app.run,
     handEl,
@@ -338,12 +338,6 @@ function focusHandCardFromTap(cardId) {
   focusHandCard(cardId);
 }
 
-function focusCardFromTap(cardId) {
-  // Same guard for the fan: a sort drag ends in a click on the card it moved.
-  if (performance.now() - peekDragAt < CLICK_GUARD_MS) return;
-  focusCard(cardId);
-}
-
 /* --- lifting a card out of the hand ---------------------------------- */
 
 const PLAY_OVERSHOOT = 48; // px past the table that counts as a swipe up
@@ -357,8 +351,6 @@ const REORDER_SCROLL = 8; // px the strip scrolls per frame at the edge
 let handDragDetach = [];
 // When the last real drag on a hand card ended.
 let handDragAt = 0;
-// When the last real drag on a card in the fan ended.
-let peekDragAt = 0;
 
 function clearHandDrags() {
   for (const detach of handDragDetach) detach();
@@ -795,7 +787,8 @@ function snapPeek(el) {
  * at its own place in the fan, no jump to the front — and follows the finger
  * from there carrying both gestures at once: sideways it moves through the row
  * of cards in play, up or down it arms the keep or the discard, and letting go
- * does whichever the release asks for. A press with no drag brings it forward.
+ * does whichever the release asks for. Let go before it has moved and it simply
+ * stays where it sits: a card only comes to the front by being dragged there.
  */
 function attachPeekGrab(el, cardId) {
   let sort = null;
@@ -822,16 +815,14 @@ function attachPeekGrab(el, cardId) {
       sort = null;
 
       if (!action) {
+        // Dropped where it was picked up: it stays in that place in the fan.
         if (done) finishRowSort(done);
         else snapPeek(el);
-        // A press with no drag still simply brings the card forward.
-        if (!moved) focusCard(cardId);
         return;
       }
 
       // Deciding takes the card out of the row, so the gap it opened goes back
       // too: the cards it leaves behind keep their own order.
-      peekDragAt = performance.now();
       if (done) resetRowSort(done);
       resolvePending(el, cardId, action, x);
     },
@@ -1609,7 +1600,7 @@ function updateIdleHint() {
 
   const { deck, hand, handLimit, pending } = app.run;
 
-  if (pending.length) setHint("Tap a card · swipe up discards all");
+  if (pending.length) setHint("Drag a card · swipe up discards all");
   else if (deck.length === 0 && hand.length) setHint("Tap a card below to read it");
   else if (deck.length === 0) setHint("The deck is empty");
   else if (hand.length >= handLimit) setHint("Hand full — keep swaps a card out");

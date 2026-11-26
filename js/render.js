@@ -10,7 +10,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=39";
+} from "./cards.js?v=40";
 
 let toastTimer = null;
 
@@ -215,13 +215,13 @@ function copyButton(card, onCopy) {
   return el;
 }
 
-/** A drawn-but-undecided card, peeking out behind the live one. Tapping focuses it. */
+/** A drawn-but-undecided card, peeking out behind the live one. It is dragged, never tapped. */
 export function createPeekEl(card, depth, size, units = "metric") {
   const el = fillCard(document.createElement("button"), card, size, units);
   el.type = "button";
   el.classList.add("card--peek");
   el.style.setProperty("--depth", String(depth));
-  el.setAttribute("aria-label", `Focus ${fullLabel(card, size)}`);
+  el.setAttribute("aria-label", `Drag ${fullLabel(card, size)}`);
   return el;
 }
 
@@ -252,14 +252,13 @@ export function fitCard(el) {
  * live card; each older one steps further left. Only the live card is removed
  * by this module's caller, so peeks are rebuilt in place.
  *
- * `onGrab` wires a drag straight onto the peek, so one can be pulled forward
- * and kept or discarded without being tapped first.
+ * `onGrab` wires a drag straight onto the peek, so one can be moved through the
+ * fan, kept or discarded without being brought forward first.
  */
 export function renderPeek(
   state,
   container,
   cardsById,
-  onFocus,
   size,
   units = "metric",
   onGrab = null,
@@ -277,7 +276,6 @@ export function renderPeek(
 
     const depth = state.pending.length - index;
     const el = createPeekEl(card, depth, size, units);
-    el.addEventListener("click", () => onFocus(id));
     onGrab?.(el, id);
     container.append(el);
     fitCard(el);
