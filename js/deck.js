@@ -1,6 +1,6 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-import { baseId } from "./cards.js?v=37";
+import { baseId } from "./cards.js?v=38";
 
 export const SCHEMA_VERSION = 5;
 export const DEFAULT_HAND_LIMIT = 6;
@@ -165,22 +165,35 @@ export function reorderHand(state, cardId, beforeId = null) {
 }
 
 /**
- * Put a parked card somewhere else in the fan. `beforeId` is the card it should
- * end up behind, further from the card in play, or null to sit at the front of
- * the fan. The order is how the fan reads and which card comes forward when the
- * table clears, so nothing else about the run changes — and a card dropped back
- * among the same neighbours leaves the same state behind, which the caller can
- * test by identity.
+ * Move a card in play — the card on the table or any card behind it — to
+ * another place in the row they form. The last place in that row is the card on
+ * the table, so dropping any card at the front puts it in play and sends the
+ * card that was there back into the fan.
+ *
+ * Order is only how the cards read and which one comes forward when the table
+ * clears, so nothing else about the run changes — and a card dropped back where
+ * it came from leaves the same state behind, which the caller can test by
+ * identity.
  */
-export function reorderPending(state, cardId, beforeId = null) {
-  if (!state.pending.includes(cardId) || cardId === beforeId) return state;
+export function moveInPlay(state, cardId, target) {
+  // A card being read from the hand is not part of the row in play.
+  const live = state.active !== null && !state.review ? state.active : null;
+  const row = live === null ? state.pending.slice() : [...state.pending, live];
 
-  const pending = state.pending.filter((id) => id !== cardId);
-  const at = beforeId === null ? pending.length : pending.indexOf(beforeId);
-  pending.splice(at === -1 ? pending.length : at, 0, cardId);
+  const from = row.indexOf(cardId);
+  if (from === -1) return state;
 
-  if (pending.every((id, i) => id === state.pending[i])) return state;
-  return { ...state, pending, updatedAt: Date.now() };
+  const to = Math.max(0, Math.min(row.length - 1, target));
+  if (to === from) return state;
+
+  row.splice(from, 1);
+  row.splice(to, 0, cardId);
+
+  const pending = live === null ? row : row.slice(0, -1);
+  const active = live === null ? state.active : row[row.length - 1];
+
+  if (active === state.active && pending.every((id, i) => id === state.pending[i])) return state;
+  return { ...state, active, pending, updatedAt: Date.now() };
 }
 
 /**

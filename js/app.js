@@ -12,12 +12,12 @@ import {
   focusHand,
   focusPending,
   keepActive,
+  moveInPlay,
   playCurse,
   playPower,
   reorderHand,
-  reorderPending,
   sanitize,
-} from "./deck.js?v=37";
+} from "./deck.js?v=38";
 import {
   POWER_PLAY,
   SIZES,
@@ -26,10 +26,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=37";
-import { trackDrag } from "./gestures.js?v=37";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=37";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=37";
+} from "./cards.js?v=38";
+import { trackDrag } from "./gestures.js?v=38";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=38";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=38";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -352,7 +352,7 @@ const CLICK_GUARD_MS = 500; // the click that ends a drag is not a tap
 const REORDER_SLOP = 6; // px of travel before a drag picks a direction
 const REORDER_EDGE = 44; // px from the strip's edge that scrolls it
 const REORDER_SCROLL = 8; // px the strip scrolls per frame at the edge
-const PEEK_SORT_BIAS = 1.4; // sideways has to win by this much: deciding is the common drag
+const SORT_BIAS = 1.4; // sideways has to win by this much: deciding is the common drag
 
 // Drags wired onto the minis of the last render, so a redraw can drop them.
 let handDragDetach = [];
@@ -734,6 +734,10 @@ function endCardDrag(el, { x, y, vx, vy, moved }) {
 }
 
 function bindCardDrag(el) {
+  // Which way the drag went: "decide" for a keep or discard, "sort" in the row.
+  let mode = null;
+  let sort = null;
+
   trackDrag(el, {
     // The copy button is a press, not a drag: leaving it to the card would
     // swallow the tap before it could become a click.
@@ -741,10 +745,47 @@ function bindCardDrag(el) {
       !(event.target instanceof Element) || !event.target.closest(".card__copy"),
     onStart: () => {
       el.style.transition = "none";
+      mode = null;
+      sort = null;
     },
-    onMove: ({ x, y }) => dragCardTo(el, x, y),
-    onEnd: (payload) => endCardDrag(el, payload),
-    onCancel: () => snapBack(el),
+    onMove: ({ x, y }) => {
+      // The card on the table is part of the row too, so a sideways drag sends
+      // it back among the fan. Up and down still decide it.
+      if (!mode && canRowSort(el)) {
+        if (Math.hypot(x, y) < REORDER_SLOP) return;
+        mode = Math.abs(x) > Math.abs(y) * SORT_BIAS ? "sort" : "decide";
+        if (mode === "sort") {
+          sort = startRowSort(el, el.dataset.id);
+          if (!sort) mode = "decide";
+        }
+      }
+
+      if (mode === "sort") {
+        dragRowSort(sort, x);
+        return;
+      }
+
+      dragCardTo(el, x, y);
+    },
+    onEnd: (payload) => {
+      if (mode === "sort") {
+        const done = sort;
+        mode = null;
+        sort = null;
+        if (done) finishRowSort(done);
+        return;
+      }
+      endCardDrag(el, payload);
+    },
+    onCancel: () => {
+      if (sort) {
+        resetRowSort(sort);
+        snapRowSort(sort);
+      }
+      mode = null;
+      sort = null;
+      snapBack(el);
+    },
   });
 }
 
@@ -780,12 +821,15 @@ function attachPeekGrab(el, cardId) {
       // clear margin: an upward flick that drifts is still a discard.
       if (!mode) {
         if (Math.hypot(x, y) < REORDER_SLOP) return;
-        mode = Math.abs(x) > Math.abs(y) * PEEK_SORT_BIAS ? "sort" : "decide";
-        if (mode === "sort") sort = startPeekSort(el, cardId);
+        mode = Math.abs(x) > Math.abs(y) * SORT_BIAS ? "sort" : "decide";
+        if (mode === "sort") {
+          sort = startRowSort(el, cardId);
+          if (!sort) mode = "decide";
+        }
       }
 
       if (mode === "sort") {
-        dragPeekSort(sort, el, x);
+        dragRowSort(sort, x);
         return;
       }
 
@@ -798,8 +842,10 @@ function attachPeekGrab(el, cardId) {
     onEnd: ({ x, y, vx, vy, moved }) => {
       if (mode === "sort") {
         peekDragAt = performance.now();
-        finishPeekSort(sort, el, cardId);
+        const done = sort;
         sort = null;
+        mode = null;
+        if (done) finishRowSort(done);
         return;
       }
 
@@ -814,39 +860,67 @@ function attachPeekGrab(el, cardId) {
       if (!moved) focusCard(cardId);
     },
     onCancel: () => {
-      if (sort) resetPeekSort(sort);
-      snapPeek(el);
+      if (sort) {
+        resetRowSort(sort);
+        snapRowSort(sort);
+      } else {
+        snapPeek(el);
+      }
       sort = null;
       mode = null;
     },
   });
 }
 
-/* --- reordering the fan ---------------------------------------------- */
+/* --- reordering the cards in play ------------------------------------ */
 
 /**
- * The fan's order is only how it reads, and which card comes forward when the
- * table clears, so sorting it changes nothing else about the run. The steps
- * between cards are fixed, so a sideways drag is measured in those steps rather
- * than against positions that are themselves moving.
+ * Only the card being decided can be sorted: a card read from the hand is not
+ * part of the row in play, and a card parked for a hand choice is out of reach.
  */
-function startPeekSort(el, cardId) {
-  const order = app.run.pending.slice();
-  const index = order.indexOf(cardId);
+function canRowSort(el) {
+  return (
+    app.cardEl === el &&
+    !app.run.review &&
+    app.pick === null &&
+    !el.classList.contains("is-playing")
+  );
+}
+
+/**
+ * The cards in play form one row: the fan steps back to the left and the card
+ * on the table sits at the front of it. Sorting is measured in the fan's own
+ * steps, so the cards slide the fixed distance they already sit apart by.
+ */
+function startRowSort(el, cardId) {
+  const { active, review, pending } = app.run;
+  const live = active !== null && !review ? active : null;
+  const row = live === null ? [...pending] : [...pending, live];
+  const index = row.indexOf(cardId);
+  if (index === -1) return null;
 
   setIntent(el, "");
-  el.style.translate = "0px 0px";
+  if (el === app.cardEl) el.style.transform = "translateX(0px)";
+  else el.style.translate = "0px 0px";
 
-  return { el, order, index, step: peekStep(), target: index, fan: peekEls() };
+  const offset = parseFloat(getComputedStyle(stackEl).getPropertyValue("--peek-offset"));
+  const lean = parseFloat(getComputedStyle(stackEl).getPropertyValue("--peek-rotate"));
+
+  return {
+    el,
+    cardId,
+    row,
+    index,
+    step: offset || 44,
+    lean: lean || 1.6,
+    target: index,
+    live,
+    liveEl: live === null ? null : app.cardEl,
+    peeks: peekEls(),
+  };
 }
 
-/** One step of the fan in pixels, read from the CSS so the two stay in step. */
-function peekStep() {
-  const raw = getComputedStyle(stackEl).getPropertyValue("--peek-offset");
-  return parseFloat(raw) || 44;
-}
-
-/** The peeks on the table by card id, so each can be given back its depth. */
+/** The peeks on the table by card id, so each can be given back its slot. */
 function peekEls() {
   const map = new Map();
   for (const node of stackEl.querySelectorAll(".card--peek")) {
@@ -855,55 +929,84 @@ function peekEls() {
   return map;
 }
 
-/** Give every peek the depth its place in `ids` calls for, sliding into it. */
-function setPeekDepths(ids, fan, skip = null) {
+/** Give every card the slot its place in `ids` calls for, sliding into it. */
+function positionRow(ids, sort, skip = null) {
   ids.forEach((id, index) => {
-    const node = fan.get(id);
+    const depth = ids.length - 1 - index;
+    const node = id === sort.live ? sort.liveEl : sort.peeks.get(id);
     if (!node || node === skip) return;
+
     node.style.transition = "transform 180ms ease";
-    node.style.setProperty("--depth", String(ids.length - index));
+
+    if (node === sort.liveEl) {
+      // The card on the table is placed by its own transform, not by depth, so
+      // it can be stepped back into the fan as the front of the row is taken.
+      node.style.transform = `translateX(${-depth * sort.step}px) rotate(${-depth * sort.lean}deg)`;
+    } else {
+      node.style.setProperty("--depth", String(depth));
+    }
   });
 }
 
-function dragPeekSort(sort, el, x) {
-  const { order, index, step, fan } = sort;
-  const target = Math.max(0, Math.min(order.length - 1, index + Math.round(x / step)));
+function dragRowSort(sort, x) {
+  const { row, index, step } = sort;
+  const target = Math.max(0, Math.min(row.length - 1, index + Math.round(x / step)));
 
   if (target !== sort.target) {
     sort.target = target;
 
-    const next = order.slice();
+    const next = row.slice();
     next.splice(index, 1);
-    next.splice(target, 0, el.dataset.id);
+    next.splice(target, 0, sort.cardId);
 
-    // The carried card keeps its own depth and stays under the finger, so it is
-    // left out and only the cards it passes step over to open the gap.
-    setPeekDepths(next, fan, el);
+    // The carried card stays under the finger, so it is left out and only the
+    // cards it passes step over to open the gap it will land in.
+    positionRow(next, sort, sort.el);
   }
 
-  el.style.translate = `${x}px 0px`;
+  if (sort.el === sort.liveEl) sort.el.style.transform = `translateX(${x}px)`;
+  else sort.el.style.translate = `${x}px 0px`;
 }
 
-/** Put the fan back the way it was drawn. */
-function resetPeekSort(sort) {
-  setPeekDepths(sort.order, sort.fan);
+/** Put the row back the way it was drawn. */
+function resetRowSort(sort) {
+  positionRow(sort.row, sort);
 }
 
-/** Let go: the fan takes the gap's place, and redraws in that order. */
-function finishPeekSort(sort, el, cardId) {
-  const rest = sort.order.filter((id) => id !== cardId);
-  const next = reorderPending(app.run, cardId, rest[sort.target] ?? null);
+/** Let the carried card go back to its own slot without a redraw. */
+function snapRowSort(sort) {
+  const el = sort.el;
+  el.style.transition = el === sort.liveEl ? "transform 200ms ease" : "translate 200ms ease";
+  if (el === sort.liveEl) el.style.transform = "";
+  else el.style.translate = "";
+  el.style.zIndex = "";
+  setIntent(el, "");
+}
+
+/** Let go: the row takes the gap's place, redrawing if the front card changed. */
+function finishRowSort(sort) {
+  const front = app.run.active;
+  const next = moveInPlay(app.run, sort.cardId, sort.target);
 
   if (next === app.run) {
-    // Dropped back among the same neighbours: the fan steps home again.
-    resetPeekSort(sort);
-    snapPeek(el);
+    // Dropped back where it came from: the row steps home again.
+    resetRowSort(sort);
+    snapRowSort(sort);
     return;
   }
 
   app.run = next;
   persist();
   renderTable();
+
+  // Only the fan's own order changed: the card on the table stays as it is.
+  if (app.run.active === front) return;
+
+  // Otherwise the front changed hands: the previous card has already been
+  // drawn back into the fan by the redraw, so the new one comes forward.
+  app.cardEl?.remove();
+  app.cardEl = null;
+  showCard(app.run.active, { animate: false });
 }
 
 /**
