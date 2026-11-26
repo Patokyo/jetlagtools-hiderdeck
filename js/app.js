@@ -17,7 +17,7 @@ import {
   playPower,
   reorderHand,
   sanitize,
-} from "./deck.js?v=42";
+} from "./deck.js?v=43";
 import {
   POWER_PLAY,
   SIZES,
@@ -26,10 +26,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=42";
-import { trackDrag } from "./gestures.js?v=42";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=42";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=42";
+} from "./cards.js?v=43";
+import { trackDrag } from "./gestures.js?v=43";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=43";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=43";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -41,6 +41,7 @@ const stage = document.getElementById("stage");
 // index.html still gets a working table instead of a silently dead one.
 const stackEl = document.getElementById("stack") ?? document.getElementById("slot");
 const handEl = document.getElementById("hand");
+const parkedEl = document.getElementById("parked");
 const tableEl = document.querySelector(".table");
 const hint = document.getElementById("hint");
 const tray = document.getElementById("tray");
@@ -65,6 +66,9 @@ const app = {
   // Set while a card being played (or kept into a full hand) is waiting for
   // hand cards to be picked.
   pick: null,
+  // Hand cards set aside during a replace pick: still in the hand, just out of
+  // the candidate row and waiting at the bottom edge until they are tapped.
+  parked: [],
   // The run as it was before the last change that moved cards, for undo.
   undo: null,
 };
@@ -115,12 +119,18 @@ async function boot() {
 /** HUD, the fan behind the live card, and the hand strip. */
 function renderTable() {
   clearHandDrags();
-  // Keeping into a full hand pulls the hand up to the middle of the screen.
-  tableEl?.classList.toggle("is-replacing", app.pick?.mode === "replace");
+
+  // Keeping into a full hand pulls the hand up to the middle of the screen, and
+  // cards swiped down out of the choice wait at the bottom edge. Parking only
+  // means anything for that one pick, so anything else ends it.
+  const replacing = app.pick?.mode === "replace";
+  tableEl?.classList.toggle("is-replacing", replacing);
+  if (!replacing) app.parked = [];
+
   renderHud(app.run, hudEls, app.cards, app.size);
   renderPeek(app.run, stackEl, app.cards, app.size, app.units, attachPeekGrab);
   renderHand(
-    app.run,
+    replacing && app.parked.length && parkedEl ? withoutParked() : app.run,
     handEl,
     app.cards,
     focusHandCardFromTap,
@@ -128,6 +138,46 @@ function renderTable() {
     pickState(),
     attachHandGrab,
   );
+  renderParked(replacing);
+}
+
+/** The run as the strip shows it: parked cards are waiting at the bottom. */
+function withoutParked() {
+  return { ...app.run, hand: app.run.hand.filter((id) => !app.parked.includes(id)) };
+}
+
+/**
+ * The cards set aside during a replace pick. They are only ever out of the hand
+ * for the length of the choice, so this is a view of the hand, not of the run:
+ * tapping one puts it back in the middle to be considered again.
+ */
+function renderParked(replacing) {
+  if (!parkedEl) return;
+  const ids = replacing ? app.parked : [];
+  parkedEl.hidden = ids.length === 0;
+  if (!ids.length) {
+    parkedEl.replaceChildren();
+    return;
+  }
+  renderHand(
+    { ...app.run, hand: ids, active: null, review: false },
+    parkedEl,
+    app.cards,
+    unparkCard,
+    app.size,
+  );
+}
+
+/** A tap on a card waiting at the bottom edge: back into the choice. */
+function unparkCard(cardId) {
+  app.parked = app.parked.filter((id) => id !== cardId);
+  renderTable();
+}
+
+/** A swipe down during a replace pick: this one is not being discarded. */
+function parkCard(cardId) {
+  if (!app.parked.includes(cardId)) app.parked.push(cardId);
+  renderTable();
 }
 
 /** Hand cards become buttons while a card is asking which ones to use. */
@@ -424,6 +474,26 @@ function attachHandGrab(el, cardId) {
           finishSort(sort, ghost, cardId);
           sort = null;
           ghost = null;
+          return;
+        }
+
+        // Choosing which card makes room: the same two directions as always,
+        // but here up throws this card away and down sets it aside at the
+        // bottom edge instead of carrying it to the table.
+        if (app.pick?.mode === "replace") {
+          if (wouldPlay(ghost, { y, vx, vy })) {
+            release();
+            finishReplace(cardId);
+            return;
+          }
+          if (y >= TAP_SLOP) {
+            release();
+            parkCard(cardId);
+            return;
+          }
+          // Half a swipe is not a decision: the card goes back into the strip
+          // rather than settling on the table mid-pick.
+          release();
           return;
         }
 
