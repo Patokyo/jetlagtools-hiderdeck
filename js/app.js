@@ -17,7 +17,7 @@ import {
   playPower,
   reorderHand,
   sanitize,
-} from "./deck.js?v=40";
+} from "./deck.js?v=41";
 import {
   POWER_PLAY,
   SIZES,
@@ -26,10 +26,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=40";
-import { trackDrag } from "./gestures.js?v=40";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=40";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=40";
+} from "./cards.js?v=41";
+import { trackDrag } from "./gestures.js?v=41";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=41";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=41";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -343,6 +343,7 @@ function focusHandCardFromTap(cardId) {
 const PLAY_OVERSHOOT = 48; // px past the table that counts as a swipe up
 const FOCUS_PROGRESS = 0.55; // how grown a released card has to be to stay up
 const CLICK_GUARD_MS = 500; // the click that ends a drag is not a tap
+const DRAG_TILT = 0.02; // degrees of lean per px a carried card is moved sideways
 const REORDER_SLOP = 6; // px of travel before a drag picks a direction
 const REORDER_EDGE = 44; // px from the strip's edge that scrolls it
 const REORDER_SCROLL = 8; // px the strip scrolls per frame at the edge
@@ -713,7 +714,7 @@ function releaseAction(el, { y, vx, vy }) {
 /** Follow the finger, lighting up what letting go would do. */
 function dragCardTo(el, x, y) {
   const threshold = cardThreshold(el);
-  el.style.transform = `translate(${x}px, ${y}px) rotate(${x * 0.02}deg)`;
+  el.style.transform = `translate(${x}px, ${y}px) rotate(${x * DRAG_TILT}deg)`;
   setIntent(el, y <= -threshold ? "discard" : y >= threshold ? "keep" : "");
 }
 
@@ -777,8 +778,9 @@ function bindCardDrag(el) {
 /** Put a grabbed parked card back where the fan has it. */
 function snapPeek(el) {
   setIntent(el, "");
-  el.style.transition = "translate 260ms cubic-bezier(.22,1.1,.36,1)";
+  el.style.transition = "translate 260ms cubic-bezier(.22,1.1,.36,1), rotate 260ms ease";
   el.style.translate = "";
+  el.style.rotate = "";
   el.style.zIndex = "";
 }
 
@@ -802,10 +804,12 @@ function attachPeekGrab(el, cardId) {
     onMove: ({ x, y }) => {
       if (sort) dragRowSort(sort, x);
 
-      // The standalone translate property composes with the fan's transform, so
-      // the carried card keeps its own step and lean while it moves — sideways
-      // under the finger and up or down towards what letting go would do.
+      // The standalone translate and rotate properties compose with the fan's
+      // transform, so the carried card keeps its own step and lean while it
+      // moves — sideways under the finger and up or down towards what letting go
+      // would do — and leans into the drag the way the card in play does.
       el.style.translate = `${x}px ${y}px`;
+      el.style.rotate = `${x * DRAG_TILT}deg`;
       const threshold = cardThreshold(el);
       setIntent(el, y <= -threshold ? "discard" : y >= threshold ? "keep" : "");
     },
@@ -939,9 +943,11 @@ function resetRowSort(sort) {
 /** Let the carried card go back to its own slot without a redraw. */
 function snapRowSort(sort) {
   const el = sort.el;
-  el.style.transition = el === sort.liveEl ? "transform 200ms ease" : "translate 200ms ease";
+  el.style.transition =
+    el === sort.liveEl ? "transform 200ms ease" : "translate 200ms ease, rotate 200ms ease";
   if (el === sort.liveEl) el.style.transform = "";
   else el.style.translate = "";
+  el.style.rotate = "";
   el.style.zIndex = "";
   setIntent(el, "");
 }
@@ -996,6 +1002,7 @@ function flyOut(el, action, x = 0) {
   const offset = Math.max(-60, Math.min(60, x * 0.35));
   el.style.transition = `translate ${EXIT_MS}ms ease-in, opacity ${EXIT_MS}ms ease-in`;
   el.style.translate = `${offset}px ${action === "keep" ? "130%" : "-130%"}`;
+  el.style.rotate = "";
   el.style.opacity = "0";
   el.addEventListener("transitionend", () => el.remove(), { once: true });
   setTimeout(() => el.remove(), EXIT_MS + 120);
