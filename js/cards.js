@@ -56,8 +56,8 @@ export const CURSE_COSTS = {
   "discard 1 card": { need: 1, kind: null },
   "discard two cards": { need: 2, kind: null },
   "discard 2 cards": { need: 2, kind: null },
-  "discard a time bonus card": { need: 1, kind: "time" },
-  "discard a power up card": { need: 1, kind: "power" },
+  "discard a time bonus": { need: 1, kind: "time" },
+  "discard a powerup": { need: 1, kind: "power" },
   "discard your hand": { all: true, kind: null },
 };
 
