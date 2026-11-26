@@ -10,7 +10,7 @@ import {
   handScore,
   minutesFor,
   shortLabel,
-} from "./cards.js?v=43";
+} from "./cards.js?v=42";
 
 let toastTimer = null;
 
@@ -364,9 +364,6 @@ export function renderHand(
         `${pick.mode === "duplicate" ? "Duplicate" : "Discard"} ${fullLabel(card, size)}`,
       );
       el.addEventListener("click", () => pick.onPick(id));
-      // Picking the card that makes room is also a drag: sideways to sort the
-      // hand, up to discard it, down to set it aside.
-      if (pick.mode === "replace") onGrab?.(el, id);
     } else if (pressable) {
       el.setAttribute("aria-label", `Read ${fullLabel(card, size)}`);
       el.addEventListener("click", () => onFocus(id));
