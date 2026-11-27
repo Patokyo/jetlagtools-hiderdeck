@@ -90,6 +90,18 @@ const DISTANCE_PAIR =
 /** Feet with a metric reading in brackets, e.g. "1,000ft (300 meters)". */
 const FEET_PAREN = /([\d,]+)\s*ft\s*\(\s*([\d,]+)\s*(m|meters?|metres?)\s*\)/gi;
 
+/**
+ * A converted metric distance, to two significant figures: the bracketed reading
+ * of "1,000ft (304m)" becomes "300m" and "500ft (152m)" becomes "150m". The
+ * figure is only ever a rounding of the imperial one, so it is the metric half
+ * that is written for the player, not a measurement of its own.
+ */
+function roundMetric(value) {
+  const number = Number(String(value).replace(/,/g, ""));
+  if (!Number.isFinite(number) || number === 0) return String(value);
+  return String(Number(number.toPrecision(2)));
+}
+
 export function minutesFor(card, size) {
   if (!card.minutes) return 0;
   return card.minutes[size] ?? card.minutes.medium;
@@ -148,7 +160,8 @@ export function handScore(hand, cardsById, size) {
 /**
  * Card text for the selected game size and unit system. Distances are written
  * once per unit in cards.json; only the chosen one survives, so a metric player
- * never sees miles and an imperial player never sees kilometres.
+ * never sees miles and an imperial player never sees kilometres, and a metric
+ * reading is rounded rather than showing the exact leftover of a conversion.
  */
 export function formatEffect(text, size, units = "metric") {
   if (!text) return "";
@@ -160,11 +173,13 @@ export function formatEffect(text, size, units = "metric") {
   return String(text)
     .replace(DISTANCE_PAIR, (_match, smi, mmi, lmi, skm, mkm, lkm) =>
       metric
-        ? `${[skm, mkm, lkm][pick]}km`
+        ? `${roundMetric([skm, mkm, lkm][pick])}km`
         : `${[smi, mmi, lmi][pick]}mi`,
     )
     .replace(FEET_PAREN, (_match, feet, metres, unit) =>
-      metric ? `${metres}${unit.toLowerCase() === "m" ? "m" : " meters"}` : `${feet}ft`,
+      metric
+        ? `${roundMetric(metres)}${unit.toLowerCase() === "m" ? "m" : " meters"}`
+        : `${feet}ft`,
     )
     .replace(RANGE, (_match, small, medium, large) => [small, medium, large][pick]);
 }

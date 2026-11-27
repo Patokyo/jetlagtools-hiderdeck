@@ -17,7 +17,7 @@ import {
   playPower,
   reorderHand,
   sanitize,
-} from "./deck.js?v=42";
+} from "./deck.js?v=44";
 import {
   POWER_PLAY,
   SIZES,
@@ -26,10 +26,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=42";
-import { trackDrag } from "./gestures.js?v=42";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=42";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=42";
+} from "./cards.js?v=44";
+import { trackDrag } from "./gestures.js?v=44";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=44";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=44";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
