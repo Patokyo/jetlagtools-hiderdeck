@@ -17,7 +17,8 @@ import {
   playPower,
   reorderHand,
   sanitize,
-} from "./deck.js?v=44";
+  settleDraw,
+} from "./deck.js?v=45";
 import {
   POWER_PLAY,
   SIZES,
@@ -26,10 +27,10 @@ import {
   curseCost,
   curseText,
   formatEffect,
-} from "./cards.js?v=44";
-import { trackDrag } from "./gestures.js?v=44";
-import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=44";
-import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=44";
+} from "./cards.js?v=45";
+import { trackDrag } from "./gestures.js?v=45";
+import { createCardEl, fitCard, renderHand, renderHud, renderPeek, showToast } from "./render.js?v=45";
+import { clear, load, loadSettings, save, saveSettings } from "./storage.js?v=45";
 
 const DRAW_DISTANCE = 64; // px of downward swipe on the table to pull a card
 const FLICK_VELOCITY = 1.1; // px/ms
@@ -116,9 +117,13 @@ async function boot() {
 function renderTable() {
   clearHandDrags();
   // Keeping into a full hand pulls the hand up to the middle of the screen.
-  tableEl?.classList.toggle("is-replacing", app.pick?.mode === "replace");
+  const replacing = app.pick?.mode === "replace";
+  tableEl?.classList.toggle("is-replacing", replacing);
   renderHud(app.run, hudEls, app.cards, app.size);
-  renderPeek(app.run, stackEl, app.cards, app.size, app.units, attachPeekGrab);
+  // A hand decision is about the hand, so nothing else of the draw is on the
+  // table for it: only the card being kept and the hand are in the way.
+  const fan = replacing ? { ...app.run, pending: [] } : app.run;
+  renderPeek(fan, stackEl, app.cards, app.size, app.units, attachPeekGrab);
   renderHand(
     app.run,
     handEl,
@@ -1337,8 +1342,20 @@ function pickCard(id) {
 
 /** Keeping into a full hand: ask which card makes room. */
 function beginReplace(el) {
+  // The rest of the draw is decided by the keep, not by this question, so it
+  // leaves the table first: an ordinary draw's leftovers are thrown away now,
+  // and a Tentacles draw still owing a keep keeps its cards aside until the
+  // replacement is settled (renderTable holds them off the table meanwhile).
+  const settled = settleDraw(app.run);
+  const leaving = settled === app.run ? [] : liftLeaving(app.run.pending);
+  if (settled !== app.run) {
+    app.run = settled;
+    persist();
+  }
+
   app.pick = { mode: "replace", need: 1, picked: [] };
   beginPick(el, "Hand full — tap a card to replace");
+  for (const node of leaving) flyOut(node, "discard");
 }
 
 function finishReplace(replaceId) {

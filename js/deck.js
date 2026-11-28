@@ -1,6 +1,6 @@
 // Deck rules. Pure functions only — no DOM, so this stays testable with plain node.
 
-import { baseId } from "./cards.js?v=44";
+import { baseId } from "./cards.js?v=45";
 
 export const SCHEMA_VERSION = 5;
 export const DEFAULT_HAND_LIMIT = 6;
@@ -239,6 +239,30 @@ export function keepActive(state, { replace = null } = {}) {
     replaced: replace,
     discarded: leftover,
     reason: null,
+  };
+}
+
+/**
+ * The draw is settled as the "which card makes room" question opens, because
+ * that question is about the hand and the rest of the draw has nothing to do
+ * with it. An ordinary draw throws away whatever is still in play — keeping is
+ * the last thing the question needed — while a Tentacles draw that still owes a
+ * keep leaves its cards in `pending`: they are out of the way for the pick and
+ * come back with the table once the replacement is settled.
+ */
+export function settleDraw(state) {
+  if (state.pending.length === 0) return state;
+
+  const needed = state.drawn >= TENTACLES_DRAWS ? TENTACLES_KEEPS : 1;
+  if (state.kept + 1 < needed) return state;
+
+  return {
+    ...state,
+    pending: [],
+    drawn: 0,
+    kept: 0,
+    discard: [...state.discard, ...state.pending],
+    updatedAt: Date.now(),
   };
 }
 
